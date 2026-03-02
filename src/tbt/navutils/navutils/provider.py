@@ -9,6 +9,8 @@ Examples::
     >>> r.geometry.wkt
 """
 
+from environs import Env
+
 from .base_provider import BaseProvider
 from .bing import BingAPI
 from .directions import Directions
@@ -23,16 +25,20 @@ from .zenrin import Zenrin
 from .genesysmap import Genesysmap
 from .orbis import Orbis
 
-API_KEY_GENESIS =
-API_KEY_GOOGLE =
-API_KEY_AMIGOALPHA =
-API_KEY_HERE =
-API_KEY_BING =
-API_KEY_KAKAO =
-API_KEY_GT =
-API_KEY_MMI =
-API_KEY_ZENRIN =
-API_KEY_GENESYSMAP =
+env = Env()
+env.read_env()
+
+API_KEY_GENESIS = env('API_KEY_GENESIS')
+API_KEY_GOOGLE =env('API_KEY_GOOGLE')
+API_KEY_AMIGOALPHA = env('API_KEY_AMIGOALPHA')
+API_KEY_HERE = env('API_KEY_HERE')
+API_KEY_BING = env('API_KEY_BING')
+API_KEY_MAPBOX = env('API_KEY_MAPBOX')
+API_KEY_KAKAO = env('API_KEY_KAKAO')
+API_KEY_GT = env('API_KEY_GT')
+API_KEY_MMI = env('API_KEY_MMI')
+API_KEY_ZENRIN = env('API_KEY_ZENRIN')
+API_KEY_GENESYSMAP = env('API_KEY_GENESYSMAP')
 
 
 class Provider(BaseProvider):
