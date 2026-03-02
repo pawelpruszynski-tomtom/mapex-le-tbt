@@ -7,6 +7,7 @@ continue to work unchanged.
 """
 
 from .cleanup import clean_data_directories
+from .initialize import initialize_inspection_data
 from .duplicates import check_duplicates
 from .routing import get_provider_routes, get_competitor_routes
 from .reuse import reuse_static_routes
@@ -18,6 +19,7 @@ from .export import export_to_csv, export_to_spark, export_to_sql
 
 __all__ = [
     "clean_data_directories",
+    "initialize_inspection_data",
     "check_duplicates",
     "get_provider_routes",
     "get_competitor_routes",
