@@ -6,6 +6,7 @@ like ``from tbt.pipelines.inspection.nodes import get_provider_routes``
 continue to work unchanged.
 """
 
+from .cleanup import clean_data_directories
 from .duplicates import check_duplicates
 from .routing import get_provider_routes, get_competitor_routes
 from .reuse import reuse_static_routes
@@ -16,6 +17,7 @@ from .sanity import sanity_check, raise_sanity_error
 from .export import export_to_csv, export_to_spark, export_to_sql
 
 __all__ = [
+    "clean_data_directories",
     "check_duplicates",
     "get_provider_routes",
     "get_competitor_routes",

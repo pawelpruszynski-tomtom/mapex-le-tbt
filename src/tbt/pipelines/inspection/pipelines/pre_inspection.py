@@ -9,20 +9,29 @@ Extension point — add nodes here for:
 
 import kedro.pipeline
 
-from ..nodes import check_duplicates
+from ..nodes import check_duplicates, clean_data_directories
 
 
 def create_pre_inspection_pipeline() -> kedro.pipeline.Pipeline:
     """Creates the pre-inspection pipeline (validation, dedup).
 
-    Currently contains the ``check_duplicates`` node (commented-out in production).
-    To activate, uncomment the node below and ensure
-    ``tbt_inspection_metadata_input_sql`` is defined in the catalog.
+    Steps:
+    - ``clean_data_directories`` — removes contents of ``data/tbt/inspection``
+      and ``data/tbt/sampling`` before the run starts.
+    - ``check_duplicates`` — commented-out in production. To activate, uncomment
+      the node below and ensure ``tbt_inspection_metadata_input_sql`` is defined
+      in the catalog.
 
     :return: Kedro Pipeline
     """
     return kedro.pipeline.Pipeline(
         [
+            kedro.pipeline.node(
+                func=clean_data_directories,
+                inputs="params:tbt_options",
+                outputs="tbt_cleanup_done",
+                name="tbt_clean_data_directories",
+            ),
             # Uncomment when tbt_inspection_metadata_input_sql is available:
             # kedro.pipeline.node(
             #     func=check_duplicates,
