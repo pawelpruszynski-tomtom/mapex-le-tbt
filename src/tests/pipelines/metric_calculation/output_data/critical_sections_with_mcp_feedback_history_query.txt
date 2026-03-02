@@ -1,0 +1,10 @@
+
+    select
+        run_id::text run_id
+        , route_id::text route_id
+        , case_id::text case_id
+        , mcp_state
+    from tbt.critical_sections_with_mcp_feedback cs
+    where cs.run_id in ('86e5d9af-0c13-48a7-a683-c66a2f4a7652')
+
+    

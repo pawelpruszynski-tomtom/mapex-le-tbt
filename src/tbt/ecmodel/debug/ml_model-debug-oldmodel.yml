@@ -1,0 +1,34 @@
+ml_model_options:
+  tbt: 
+    general_features: [route_length]
+    geo_features: [stretch_length,stretch_start_position_in_route,stretch_end_position_in_route,stretch_starts_at_the_route_start,stretch_ends_at_the_route_end,heading_stretch,left_turns,straight_turns,right_turns,total_right_angle,max_right_angle,total_left_angle,max_left_angle,absolute_angle,has_left_turns,has_right_turns,min_curvature,max_curvature,mean_curvature,distance_start_end_stretch,route_coverage,stretch_covers_route,tortuosity,sinuosity,density,drive_right_side]
+    fcd_features: [pra,prb,prab,lift,tot]
+    sdo_features: [MANDATORY_STRAIGHT_ONLY,MANDATORY_STRAIGHT_OR_LEFT,MANDATORY_TURN_LEFT_ONLY,MANDATORY_TURN_LEFT_OR_RIGHT,MANDATORY_LEFT_OR_STRAIGHT_OR_RIGHT,MANDATORY_TURN_RIGHT_ONLY,MANDATORY_STRAIGHT_OR_RIGHT,NO_ENTRY,NO_MOTOR_VEHICLE,NO_CAR_OR_BIKE,NO_LEFT_OR_RIGHT_TT,NO_LEFT_TURN,NO_RIGHT_TURN,NO_VEHICLE,NO_STRAIGHT_TT,NO_TURN_TT,NO_U_TURN]
+    # Model settings
+    model_probability_threshold: 0.032
+    model_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_name: tbt_binary_classification
+    experiment_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_id: 2322275508346951
+  hdr: 
+    general_features: [route_length]
+    geo_features: [stretch_length,stretch_start_position_in_route,stretch_end_position_in_route,stretch_starts_at_the_route_start,stretch_ends_at_the_route_end,heading_stretch,left_turns,straight_turns,right_turns,total_right_angle,max_right_angle,total_left_angle,max_left_angle,absolute_angle,has_left_turns,has_right_turns,min_curvature,max_curvature,mean_curvature,distance_start_end_stretch,route_coverage,stretch_covers_route,tortuosity,sinuosity,density,drive_right_side]
+    fcd_features: [pra,prb,prab,lift,tot]
+    sdo_features: [MANDATORY_STRAIGHT_ONLY,MANDATORY_STRAIGHT_OR_LEFT,MANDATORY_TURN_LEFT_ONLY,MANDATORY_TURN_LEFT_OR_RIGHT,MANDATORY_LEFT_OR_STRAIGHT_OR_RIGHT,MANDATORY_TURN_RIGHT_ONLY,MANDATORY_STRAIGHT_OR_RIGHT,NO_ENTRY,NO_MOTOR_VEHICLE,NO_CAR_OR_BIKE,NO_LEFT_OR_RIGHT_TT,NO_LEFT_TURN,NO_RIGHT_TURN,NO_VEHICLE,NO_STRAIGHT_TT,NO_TURN_TT,NO_U_TURN]
+    # Model settings
+    model_probability_threshold: 0.032
+    model_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_name: tbt_binary_classification
+    experiment_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_id: 2322275508346951
+  combined:
+    general_features: [route_length]
+    geo_features: [stretch_length,stretch_start_position_in_route,stretch_end_position_in_route,stretch_starts_at_the_route_start,stretch_ends_at_the_route_end,heading_stretch,left_turns,straight_turns,right_turns,total_right_angle,max_right_angle,total_left_angle,max_left_angle,absolute_angle,has_left_turns,has_right_turns,min_curvature,max_curvature,mean_curvature,distance_start_end_stretch,route_coverage,stretch_covers_route,tortuosity,sinuosity,density,drive_right_side]
+    fcd_features: [pra,prb,prab,lift,tot]
+    sdo_features: [MANDATORY_STRAIGHT_ONLY,MANDATORY_STRAIGHT_OR_LEFT,MANDATORY_TURN_LEFT_ONLY,MANDATORY_TURN_LEFT_OR_RIGHT,MANDATORY_LEFT_OR_STRAIGHT_OR_RIGHT,MANDATORY_TURN_RIGHT_ONLY,MANDATORY_STRAIGHT_OR_RIGHT,NO_ENTRY,NO_MOTOR_VEHICLE,NO_CAR_OR_BIKE,NO_LEFT_OR_RIGHT_TT,NO_LEFT_TURN,NO_RIGHT_TURN,NO_VEHICLE,NO_STRAIGHT_TT,NO_TURN_TT,NO_U_TURN]
+    # Model settings
+    model_probability_threshold: 0.032
+    model_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_name: tbt_binary_classification
+    experiment_path: /workspace/src/tbt/ecmodel/debug/old-model
+    experiment_id: 2322275508346951

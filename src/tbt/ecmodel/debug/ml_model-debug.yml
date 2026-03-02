@@ -1,0 +1,10 @@
+ml_model_options:
+  tbt: 
+    model_name: ec_tbt_prod
+    model_stage: production
+  hdr: 
+    model_name: ec_hdr_prod
+    model_stage: production
+  combined: 
+    model_name: ec_combined_prod
+    model_stage: production

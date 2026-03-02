@@ -1,0 +1,13 @@
+tbt_options:
+  sample_id: 0273e3cc-a095-4e4a-aa33-b760433ed8fe
+  provider: Orbis
+  competitor: Genesis
+  endpoint:
+  competitor_endpoint:
+  product: latest
+  mapdate: 2025-12-19
+  ignore_previous_inspections: True
+  error_classification_mode: False
+  avoid_duplicates: True
+
+fcd_credentials: faked

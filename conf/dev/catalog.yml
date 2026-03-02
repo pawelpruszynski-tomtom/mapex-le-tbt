@@ -1,0 +1,222 @@
+#------------------------------
+# Overrides base/catalog.yml
+#------------------------------
+
+# Sampling inputs
+#---------------------
+tbt_m14scope_delta:
+  type: spark.SparkDataSet
+  filepath: data/tbt/sampling/M14Scope
+  file_format: parquet
+  layer: sampling
+
+# Sampling outputs
+#---------------------
+tbt_sampling_samples_sdf:
+  type: spark.SparkDataSet
+  filepath: data/tbt/sampling/sampling_samples_Riyadh.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: sampling
+
+tbt_sampling_metadata_sdf:
+  type: spark.SparkDataSet
+  filepath: data/tbt/sampling/sampling_metadata_Riyadh.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: sampling
+
+# Inspection inputs/outputs
+#---------------------------
+tbt_inspection_routes_input:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_routes.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_critical_sections_with_mcp_feedback_input:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/critical_sections_with_mcp_feedback.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_inspection_critical_sections_input:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_critical_sections.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_inspection_metadata_input:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_metadata.parquet
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_error_logs_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/error_logs
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_inspection_metadata_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_metadata
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: inspection
+
+tbt_inspection_routes_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_routes
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [provider,country,sample_id,run_id]
+  layer: inspection
+
+tbt_critical_sections_with_mcp_feedback_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/critical_sections_with_mcp_feedback
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [run_id]
+  layer: inspection
+
+tbt_inspection_critical_sections_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/inspection_critical_sections
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [run_id]
+  layer: inspection
+
+
+tbt_critical_sections_with_model_predictions:
+  type: spark.SparkDataSet
+  filepath: data/tbt/inspection/critical_sections_with_model_predictions
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [inspection_date]
+  layer: inspection
+  
+# sql
+# TO BE REVIEWED ONCE WE HAVE THE NEW DEV ENVIRONMENT
+tbt_error_logs_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/error_logs.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+
+tbt_inspection_metadata_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/inspection_metadata.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+
+tbt_inspection_routes_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/inspection_routes.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+
+tbt_critical_sections_with_mcp_feedback_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/critical_sections_with_mcp_feedback.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+
+tbt_inspection_critical_sections_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/inspection_critical_sections.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+
+tbt_scheduled_metrics_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/metric_calculation/scheduled_metrics
+  file_format: parquet
+  save_args:
+    mode: append
+  layer: metrics
+
+tbt_scheduled_bootstrap_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/metric_calculation/scheduled_bootstrap
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [run_id]
+  layer: metrics
+
+tbt_scheduled_error_logs_history_output_spark:
+  type: spark.SparkDataSet
+  filepath: data/tbt/metric_calculation/scheduled_error_logs_history
+  file_format: parquet
+  save_args:
+    mode: append
+    partitionBy: [run_id]
+  layer: metrics
+
+tbt_scheduled_error_logs_history_output_sql:
+  type: pandas.CSVDataSet
+  filepath: data/tbt/inspection/scheduled_error_logs_history.csv
+  load_args:
+    sep: ","
+    na_values: ["#NA", NA]
+  save_args:
+    index: False
+    date_format: "%Y-%m-%d %H:%M"
+    decimal: .
+  
+hdr_sampling_samples_df:
+  type: pandas.CSVDataSet
+  filepath: data/hdr/sampling/hdr_sampling.csv
+ 
+hdr_sampling_metadata_df:
+  type: pandas.CSVDataSet
+  filepath: data/hdr/sampling/hdr_sampling_metadata.csv
+
+hdr_sampling_extra_df:
+  type: pandas.CSVDataSet
+  filepath: data/hdr/sampling/hdr_sampling_extra.csv

@@ -1,0 +1,6 @@
+split_region_options:
+  poly_url: http://download.geofabrik.de/north-america/us/colorado.poly
+  new_region_iso: US-CO
+  country: USA
+  default_quality: Q3
+  grid_resolution: 128

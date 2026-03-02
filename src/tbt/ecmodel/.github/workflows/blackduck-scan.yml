@@ -1,0 +1,29 @@
+name: Call reusable Blackduck scan
+ 
+on:
+    workflow_dispatch:
+ 
+jobs:
+    set-repo-name:
+        runs-on: ubuntu-latest
+        outputs:
+            repo_name: ${{ steps.set-repo-name.outputs.repo_name }}
+        steps:
+            - name: Set repo name
+              id: set-repo-name
+              run: |
+                  REPO_NAME=$(echo "${{ github.event.repository.name }}" | sed 's/github-//')
+                  echo "Repository name without 'github-': $REPO_NAME"
+                  echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
+ 
+    call-blackduck-scan:
+        needs: set-repo-name
+        uses: tomtom-internal/github-reusable-workflows/.github/workflows/blackduck-scan.yml@main
+        with:
+            name: ${{ needs.set-repo-name.outputs.repo_name }}
+            version: master
+        secrets:
+            ARTIFACTORY_SAAS_READER_ACCOUNT_NAME: ${{ secrets.ARTIFACTORY_SAAS_READER_ACCOUNT_NAME }}
+            ARTIFACTORY_SAAS_READER_ACCOUNT_TOKEN: ${{ secrets.ARTIFACTORY_SAAS_READER_ACCOUNT_TOKEN }}
+            BLACKDUCK_API_TOKEN: ${{ secrets.BLACKDUCK_API_TOKEN }}
+            TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,361 @@
+-- CREATE ENUM TYPE FOR ERROR TYPE
+CREATE TYPE error_type_enum AS ENUM ('discard', 'WDTRF',  'SGEO', 'MMAN', 'IMPLICIT',  'MBP', 'WRC', 'WGEO', 'MGSC');
+ALTER TABLE error_logs ALTER COLUMN error_type TYPE error_type_enum using error_type::error_type_enum;
+
+-- Create MCP user
+create user mcp_tbt password 'mcp_tbt';
+GRANT SELECT, TRIGGER, REFERENCES ON TABLE public.error_logs TO mcp_tbt;
+grant update(error_type, evaluated_by, review_date, comment) on table error_logs to mcp_tbt;
+
+-- Create genesis user
+create user genesis_user password 'genesis_tbt';
+GRANT USAGE ON SCHEMA public TO genesis_user;
+
+-- Create tbt_genesis view
+-- public.tbt_genesis source
+
+CREATE OR REPLACE VIEW public.tbt_genesis
+AS WITH tbt_country AS (
+         SELECT sm.run_id::text AS run_id,
+                CASE
+                    WHEN im.provider::text = ANY (ARRAY['OM-VAL'::character varying, 'OM_CUSTOM'::character varying]::text[]) THEN 'Orbis'::text
+                    WHEN im.provider::text = 'TT'::text OR im.provider::text = 'GENESIS'::text THEN 'Genesis'::text
+                    WHEN im.provider::text = 'OSM'::text THEN 'OSM'::text
+                    ELSE NULL::text
+                END AS provider,
+            im.country,
+            aw.ranking,
+            im.product,
+            to_char(im.mapdate::date::timestamp with time zone, 'yyyy-mm-01'::text)::date AS mapdate,
+            sm.routes,
+            round(sm.provider_hours::numeric, 2) AS "time",
+            round(sm.provider_km::numeric, 2) AS lenght,
+            round(sm.eph::numeric, 3) AS eph,
+            round(sm.eph_lower::numeric, 3) AS eph_ci_lower,
+            round(sm.eph_upper::numeric, 3) AS eph_ci_upper,
+            sm.errors,
+            round(((sm.metrics_per_error_type -> 'turnrest'::text) ->> 'eph'::text)::numeric, 3) AS turnrest_eph,
+            ((sm.metrics_per_error_type -> 'turnrest'::text) ->> 'errors'::text)::integer AS turnrest_errors,
+            round(((sm.metrics_per_error_type -> 'oneway'::text) ->> 'eph'::text)::numeric, 3) AS oneway_eph,
+            ((sm.metrics_per_error_type -> 'oneway'::text) ->> 'errors'::text)::integer AS oneway_errors,
+            round(((sm.metrics_per_error_type -> 'nonnav'::text) ->> 'eph'::text)::numeric, 3) AS nonnav_eph,
+            ((sm.metrics_per_error_type -> 'nonnav'::text) ->> 'errors'::text)::integer AS nonnav_errors,
+            date(im.inspection_date) AS inspection_date
+           FROM scheduled_metrics sm
+             LEFT JOIN inspection_metadata im ON sm.run_id = im.run_id
+             LEFT JOIN sampling_metadata sm2 ON im.sample_id = sm2.sample_id
+             LEFT JOIN aggregation_weights aw ON im.country::text = aw.country
+          WHERE sm.publish_value_stream = true AND (im.provider::text = ANY (ARRAY['TT'::character varying, 'GENESIS'::character varying]::text[])) AND im.mapdate IS NOT NULL AND sm2.metric::text = 'TbT 3.0'::text
+        )
+ SELECT tbt_country.run_id,
+    tbt_country.provider,
+    tbt_country.country,
+    tbt_country.ranking,
+    tbt_country.product,
+    tbt_country.mapdate,
+    tbt_country.routes,
+    tbt_country."time",
+    tbt_country.lenght,
+    tbt_country.eph,
+    tbt_country.eph_ci_lower,
+    tbt_country.eph_ci_upper,
+    tbt_country.errors,
+    tbt_country.turnrest_eph,
+    tbt_country.turnrest_errors,
+    tbt_country.oneway_eph,
+    tbt_country.oneway_errors,
+    tbt_country.nonnav_eph,
+    tbt_country.nonnav_errors,
+    tbt_country.inspection_date
+   FROM tbt_country
+  WHERE true AND tbt_country.provider = 'Genesis'::text AND tbt_country.country::text <> 'US-CA'::text
+  ORDER BY tbt_country.provider, tbt_country.mapdate, tbt_country.ranking;
+
+-- Permissions
+
+ALTER TABLE public.tbt_genesis OWNER TO orbisanalytics;
+GRANT ALL ON TABLE public.tbt_genesis TO orbisanalytics;
+GRANT SELECT ON TABLE public.tbt_genesis TO genesis_user;
+
+-- create inspection_results view
+-- public.inspection_results source
+
+CREATE OR REPLACE VIEW public.inspection_results
+AS SELECT im.run_id,
+    im.sample_id,
+    im.country,
+    im.provider,
+    im.product,
+    im.endpoint,
+    im.mcp_tasks,
+    im.completed,
+    im.mcp_review,
+    im.inspection_date,
+    im.mcp_end_date,
+    im.comment,
+    COALESCE(sm2.metric, 'TbT 3 (legacy)'::character varying) AS sample_metric,
+    sm2.final_routes AS sample_routes,
+    sm2.sample_q,
+    sm.routes,
+    sm.provider_km,
+    sm.provider_hours,
+    sm.errors,
+    sm.eph,
+    sm.eph_lower,
+    sm.eph_upper,
+    sm.failed_routes,
+    sm.failed_routes_lower,
+    sm.failed_routes_upper,
+    ((im.api_calls -> 'Google'::text)::text)::integer AS google_api_calls,
+    ((im.api_calls -> 'Here'::text)::text)::integer AS here_api_calls
+   FROM inspection_metadata im
+     LEFT JOIN sampling_metadata sm2 USING (sample_id)
+     LEFT JOIN scheduled_metrics sm USING (run_id);
+
+-- Permissions
+
+ALTER TABLE public.inspection_results OWNER TO orbisanalytics;
+GRANT ALL ON TABLE public.inspection_results TO orbisanalytics;
+
+
+
+-- DEV DATABASE / 27.02.2023
+
+CREATE EXTENSION postgis;
+
+CREATE TABLE public.aggregation_weights (
+	country_name text NULL,
+	country text NULL,
+	top text NULL,
+	weight float8 NULL,
+	ranking int8 NULL
+);
+
+CREATE TABLE public.aggregation_ww (
+	run_id uuid NULL,
+	provider text NULL,
+	"scope" text NULL,
+	countries int8 NULL,
+	metric text NULL,
+	mapdate timestamp NULL,
+	"date" timestamp NULL,
+	eph float8 NULL,
+	publish_harold bool NULL,
+	publish_value_stream bool NULL,
+	metadata text NULL,
+	eph_types text NULL
+);
+
+CREATE TABLE public.critical_sections_with_mcp_feedback (
+	run_id uuid NOT NULL,
+	route_id uuid NOT NULL,
+	case_id uuid NOT NULL,
+	mcp_state varchar NULL,
+	reference_case_id uuid NULL,
+	CONSTRAINT critical_sections_with_mcp_feedback_pk PRIMARY KEY (run_id, route_id, case_id)
+);
+
+
+CREATE TABLE public.error_logs (
+	run_id uuid NOT NULL,
+	case_id uuid NOT NULL,
+	stretch geometry(linestring, 4326) NULL,
+	provider_route geometry(linestring, 4326) NULL,
+	competitor_route geometry(linestring, 4326) NULL,
+	error_type error_type_enum NULL,
+	evaluated_by varchar NULL,
+	review_date timestamp NULL,
+	"comment" varchar NULL,
+	country varchar NULL,
+	provider varchar NULL,
+	product varchar NULL,
+	competitor varchar NULL,
+	route_id uuid NOT NULL,
+	CONSTRAINT error_logs_pk PRIMARY KEY (run_id, route_id, case_id)
+);
+CREATE INDEX error_logs_competitor_route_idx ON public.error_logs USING gist (competitor_route);
+CREATE INDEX error_logs_provider_route_idx ON public.error_logs USING gist (provider_route);
+CREATE INDEX error_logs_stretch_idx ON public.error_logs USING gist (stretch);
+
+
+CREATE TABLE public.inspection_critical_sections (
+	run_id uuid NOT NULL,
+	route_id uuid NOT NULL,
+	case_id uuid NOT NULL,
+	reference_case_id uuid NULL,
+	stretch geometry(linestring, 4326) NULL,
+	fcd_state varchar NULL,
+	pra float4 NULL,
+	prb float4 NULL,
+	prab float4 NULL,
+	tot float4 NULL,
+	lift float4 NULL,
+	stretch_length float4 NULL,
+	CONSTRAINT inspection_critical_sections_pk PRIMARY KEY (run_id, route_id, case_id)
+);
+
+CREATE TABLE public.inspection_metadata (
+	run_id uuid NOT NULL,
+	sample_id uuid NULL,
+	reference_run_id uuid NULL,
+	provider varchar NULL,
+	endpoint varchar NULL,
+	mapdate timestamp NULL,
+	product varchar NULL,
+	country varchar NULL,
+	"mode" varchar NULL,
+	competitor varchar NULL,
+	mcp_tasks int4 NULL,
+	rac_elapsed_time float4 NULL,
+	fcd_elapsed_time float4 NULL,
+	total_elapsed_time float4 NULL,
+	api_calls json NULL,
+	mcp_start_date timestamp NULL,
+	mcp_end_date timestamp NULL,
+	mcp_elapsed_time float4 NULL,
+	"comment" varchar NULL,
+	completed bool NULL,
+	inspection_date timestamp NULL,
+	mcp_review bool NULL,
+	CONSTRAINT inspection_metadata_pk PRIMARY KEY (run_id)
+);
+
+CREATE TABLE public.inspection_routes (
+	run_id uuid NOT NULL,
+	route_id uuid NOT NULL,
+	origin geometry(point, 4326) NULL,
+	destination geometry(point, 4326) NULL,
+	provider_route geometry(linestring, 4326) NULL,
+	competitor_route geometry(linestring, 4326) NULL,
+	rac_state varchar NULL,
+	provider_route_length float4 NULL,
+	provider_route_time float4 NULL,
+	competitor_route_length float4 NULL,
+	competitor_route_time float4 NULL,
+	provider varchar NULL,
+	competitor varchar NULL,
+	country varchar NULL,
+	sample_id uuid NOT NULL,
+	CONSTRAINT inspection_routes_pk PRIMARY KEY (sample_id, run_id, route_id)
+);
+CREATE INDEX inspection_routes_provider_route ON public.inspection_routes USING gist (provider_route);
+CREATE INDEX inspection_routes_run_id_idx ON public.inspection_routes USING btree (run_id);
+
+
+CREATE TABLE public.sampling_metadata (
+	sample_id uuid NOT NULL,
+	osm_map_version varchar NULL,
+	date_generated timestamp NULL,
+	elapsed_time float4 NULL,
+	country varchar NULL,
+	parameters varchar NULL,
+	environment varchar NULL,
+	api_calls json NULL,
+	fcd_extraction_time float4 NULL,
+	fcd_extracted_routes int4 NULL,
+	processed_routes int4 NULL,
+	final_routes int4 NULL,
+	processing_time float4 NULL,
+	"comment" varchar NULL,
+	sample_q varchar NULL,
+	metric varchar NULL,
+	CONSTRAINT sampling_metadata_pk PRIMARY KEY (sample_id)
+);
+
+CREATE TABLE public.sampling_samples (
+	sample_id uuid NOT NULL,
+	tile_id varchar NULL,
+	origin geometry(point, 4326) NULL,
+	destination geometry(point, 4326) NULL,
+	route_id uuid NOT NULL,
+	quality varchar NULL,
+	country varchar NULL,
+	date_generated timestamp NULL,
+	org varchar NULL,
+	CONSTRAINT sampling_samples_pk PRIMARY KEY (sample_id, route_id)
+);
+CREATE INDEX sampling_samples_origin_idx ON public.sampling_samples USING gist (origin);
+
+
+CREATE TABLE public.scheduled_error_logs_history (
+	run_id uuid NOT NULL,
+	case_id uuid NOT NULL,
+	stretch geometry(linestring, 4326) NULL,
+	provider_route geometry(linestring, 4326) NULL,
+	competitor_route geometry(linestring, 4326) NULL,
+	error_type error_type_enum NULL,
+	evaluated_by varchar NULL,
+	review_date timestamp NULL,
+	"comment" varchar NULL,
+	country varchar NULL,
+	provider varchar NULL,
+	product varchar NULL,
+	competitor varchar NULL,
+	route_id uuid NULL,
+	CONSTRAINT error_logs_pk_1 PRIMARY KEY (case_id, run_id)
+);
+
+
+CREATE TABLE public.scheduled_metrics (
+	run_id uuid NOT NULL,
+	routes int4 NULL,
+	errors int4 NULL,
+	provider_km float4 NULL,
+	provider_hours float4 NULL,
+	eph float4 NULL,
+	metrics_per_error_type json NULL,
+	metrics_per_mqs json NULL,
+	publish_value_stream bool NULL,
+	publish_harold bool NULL,
+	failed_routes float8 NULL,
+	competitor_hours float4 NULL,
+	competitor_km float4 NULL,
+	eph_lower float4 NULL,
+	eph_upper float4 NULL,
+	rac_state json NULL,
+	failed_routes_lower float8 NULL,
+	failed_routes_upper float8 NULL,
+	CONSTRAINT scheduled_metrics_pk PRIMARY KEY (run_id)
+);
+
+
+create extension dblink;
+
+insert into sampling_metadata 
+select *
+from dblink('hostaddr=10.137.173.169 dbname=tbt user=orbisanalytics password=rockVildArk3',
+            'select * from public.sampling_metadata') tt(
+	sample_id uuid,
+	osm_map_version varchar,
+	date_generated timestamp,
+	elapsed_time float4,
+	country varchar,
+	parameters varchar,
+	environment varchar,
+	api_calls json,
+	fcd_extraction_time float4,
+	fcd_extracted_routes int4,
+	processed_routes int4,
+	final_routes int4,
+	processing_time float4,
+	"comment" varchar,
+	sample_q varchar,
+	metric varchar
+            )
+;
+
+insert into sampling_samples 
+select *
+from dblink('hostaddr=10.137.173.169 dbname=tbt user=orbisanalytics password=rockVildArk3',
+            'select * from public.sampling_samples') tt(
+	sample_id uuid,
+	tile_id varchar,
+	origin geometry(point, 4326),
+	destination geometry(point, 4326),
+	route_id uuid,
+	quality varchar,
+	country varchar,
+	date_generated timestamp,
+	org varchar	
+            )
+;

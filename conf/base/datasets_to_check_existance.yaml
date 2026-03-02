@@ -1,0 +1,17 @@
+datasets_to_check:
+  # inspection pipeline datasets
+  - name: tbt_inspection_routes_input
+  - name: tbt_critical_sections_with_mcp_feedback_input
+  - name: tbt_inspection_metadata_input
+  - name: tbt_error_logs_output_spark
+  - name: tbt_inspection_metadata_output_spark
+  - name: tbt_inspection_routes_output_spark
+  - name: tbt_critical_sections_with_mcp_feedback_output_spark
+  - name: tbt_critical_sections_with_model_predictions
+  - name: tbt_sampling_metadata_sdf
+
+  # metric calculation pipeline datasets
+  - name: scheduled_metrics_spark
+  - name: scheduled_critical_sections_with_mcp_feedback_spark
+  - name: scheduled_error_logs_history_spark
+  - name: scheduled_bootstrap_spark

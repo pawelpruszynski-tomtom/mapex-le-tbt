@@ -1,0 +1,10 @@
+sample_options:
+  country: ESP
+  max_routes:
+    Q1: 10
+    Q2: 8
+    Q3: 2
+  trace_limit: 10000
+  endpoint: http://tt-valhalla-api.westeurope.azurecontainer.io:8002/
+  osm_map_version: '2022.06.24'
+  sample_q: 'development'

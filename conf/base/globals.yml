@@ -1,0 +1,6 @@
+data_folder: data
+data_lake_root: /dbfs/mnt/tbt/delta-tables
+
+shared_db_connection_string: jdbc:postgresql://10.137.173.172:5432/directions-shared-components-dev
+trucks_db_connection_string: jdbc:postgresql://10.137.173.173:5432/dev
+

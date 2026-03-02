@@ -1,0 +1,5 @@
+project: maps-analytics-adas-utils
+scan_type:
+- FULL_SCAN
+include_folders:
+  - navutils

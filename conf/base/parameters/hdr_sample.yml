@@ -1,0 +1,8 @@
+hdr_sample_options:
+  country: GBR
+  debug: true
+  mdr_perc_threshold: 0.9
+  provider_endpoint: https://api.tomtom.com/routing/1/calculateRoute/
+  provider_name: TT
+  target_routes: 15
+  sample_q: development

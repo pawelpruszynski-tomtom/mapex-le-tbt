@@ -1,0 +1,22 @@
+[tool.kedro]
+package_name = "tbt"
+project_name = "TbT Metric"
+project_version = "0.18.4"
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = """
+--ignore src/tbt/navutils/tests/adas/
+--cov-report term-missing \
+--cov-report xml:coverage.xml \
+--cov src/tbt -ra"""
+
+[tool.coverage.report]
+fail_under = 55
+show_missing = true
+exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
+
+[tool.coverage.run]
+omit = ["src/tbt/navutils/adas/**", "src/tbt/navutils/tests/**"]

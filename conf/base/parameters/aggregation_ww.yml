@@ -1,0 +1,12 @@
+# This is a boilerplate parameters config generated for pipeline 'aggregation_ww'
+# using Kedro 0.18.4
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://kedro.readthedocs.io/en/0.18.4/kedro_project_setup/configuration.html#parameters
+aggregation_ww_options:
+  run_ids: ['33fc24f0-4250-49fb-ad3c-7fafa4389502']
+  base_run_id_ww: 'b6b818fb-a118-489a-9a77-222dfaaf4be6'
+  scope: 'WorldWide'
+  provider: 'OM_CUSTOM'
+  comment: ''
+  email: 'jsuarez.tomtom@gmail.com'

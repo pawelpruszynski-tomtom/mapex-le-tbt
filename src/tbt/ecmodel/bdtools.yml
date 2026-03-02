@@ -1,0 +1,3 @@
+project: maps-analytics-directions-error-classification
+scan_type:
+- FULL_SCAN
