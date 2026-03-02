@@ -1,12 +1,250 @@
-[![docs](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions/workflows/doc.yml/badge.svg)](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions)
-[![build](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions/workflows/build.yml/badge.svg)](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions)
-[![tests](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions/workflows/test.yml/badge.svg)](https://github.com/tomtom-internal/github-maps-analytics-tbt/actions)
-[![Coverage](https://sonar.tomtomgroup.com/api/project_badges/measure?project=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3&metric=coverage&token=squ_e6a04ad327dbbd6755a36385d01b74f7814e07dc)](https://sonar.tomtomgroup.com/dashboard?id=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3)
-[![Quality Gate Status](https://sonar.tomtomgroup.com/api/project_badges/measure?project=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3&metric=alert_status&token=squ_e6a04ad327dbbd6755a36385d01b74f7814e07dc)](https://sonar.tomtomgroup.com/dashboard?id=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3)
-[![Maintainability Rating](https://sonar.tomtomgroup.com/api/project_badges/measure?project=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3&metric=sqale_rating&token=squ_e6a04ad327dbbd6755a36385d01b74f7814e07dc)](https://sonar.tomtomgroup.com/dashboard?id=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3)
-[![Security Rating](https://sonar.tomtomgroup.com/api/project_badges/measure?project=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3&metric=security_rating&token=squ_e6a04ad327dbbd6755a36385d01b74f7814e07dc)](https://sonar.tomtomgroup.com/dashboard?id=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3)
-[![Code Smells](https://sonar.tomtomgroup.com/api/project_badges/measure?project=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3&metric=code_smells&token=squ_e6a04ad327dbbd6755a36385d01b74f7814e07dc)](https://sonar.tomtomgroup.com/dashboard?id=tomtom-internal_github-maps-analytics-tbt_AYV8tEnuLz-Wgtk2fwk3)
 
-# TbT metric 4.0
+# TbT Metric by MapEx 1.0
 
-Documentation: https://tomtom-internal.github.io/github-maps-analytics-docs/tbt
+Kedro-based pipeline for running **Turn-by-Turn (TbT) route inspections** — comparing provider routes against a competitor, computing RAC/FCD states and producing structured inspection outputs.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Project structure](#project-structure)
+- [Setup](#setup)
+- [Input data](#input-data)
+- [Configuration](#configuration)
+- [Running pipelines](#running-pipelines)
+- [Pipeline DAG](#pipeline-dag)
+- [Scripts](#scripts)
+- [Output data](#output-data)
+- [Development](#development)
+
+---
+
+## Overview
+
+The project computes the **TbT metric** by:
+
+1. **Pre-inspection** — cleaning stale data, creating empty parquet schemas and generating sampling files from a GeoJSON route list.
+2. **Core inspection** — calling provider & competitor routing APIs, computing RAC and FCD states, merging results.
+3. **Post-inspection** — sanity checks and export to CSV / Spark / SQL.
+
+The pipeline is implemented with [Kedro 0.18.4](https://kedro.readthedocs.io/) and [PySpark 3.3.2](https://spark.apache.org/).
+
+---
+
+## Project structure
+
+```
+mapex-le-tbt/
+├── conf/
+│   ├── base/
+│   │   ├── globals.yml                  # shared path variables
+│   │   ├── logging.yml
+│   │   └── parameters/
+│   │       ├── tbt.yml                  # main run parameters
+│   │       └── run.yml                  # run_id (auto-generated)
+│   ├── dev/catalog.yml                  # Spark dataset definitions (dev)
+│   └── local/catalog.yml                # Spark dataset definitions (local)
+├── li_input/
+│   ├── csv/Routes2check.csv             # raw route list (input)
+│   └── geojson/Routes2check.geojson     # converted route list (generated)
+├── data/
+│   └── tbt/
+│       ├── inspection/                  # inspection parquet outputs
+│       └── sampling/                    # sampling parquet files
+├── output/                              # exported CSV results
+├── scripts/
+│   ├── convert_routes2check_to_geojson.py
+│   ├── generate_empty_inspection_*.py   # empty inspection schema creators
+│   └── generate_sampling_*.py           # sampling data generators
+└── src/tbt/
+    ├── pipeline_registry.py
+    └── pipelines/inspection/
+        ├── pipeline.py                  # full pipeline composition
+        ├── pipelines/
+        │   ├── pre_inspection.py
+        │   ├── core_inspection.py
+        │   └── post_inspection.py
+        └── nodes/
+            ├── cleanup.py
+            ├── initialize.py
+            ├── initialize_sampling.py
+            ├── routing.py
+            ├── rac.py
+            ├── fcd.py
+            ├── merge.py
+            ├── sanity.py
+            └── export.py
+```
+
+---
+
+## Setup
+
+### Requirements
+
+- Python 3.9+
+- Java 11 (required by PySpark)
+- PySpark 3.3.2
+
+### Install
+
+```bash
+cd src
+pip install -e .
+pip install -r requirements.txt
+```
+
+---
+
+## Input data
+
+### 1. Prepare GeoJSON from CSV
+
+Before the first run, convert `li_input/csv/Routes2check.csv` to GeoJSON:
+
+```bash
+python3 scripts/convert_routes2check_to_geojson.py
+```
+
+This creates `li_input/geojson/Routes2check.geojson` — the source of truth for sampling data.  
+The CSV must have columns: `sample_id, tile_id, origin, destination, route_id, quality, country, date_generated, org`.  
+`origin` / `destination` must be in `POINT(lon lat)` format.
+
+### 2. Sampling parquet (auto-generated by pipeline)
+
+The pre-inspection step automatically generates:
+
+| File | Description |
+|---|---|
+| `data/tbt/sampling/sampling_samples.parquet` | One row per route from GeoJSON |
+| `data/tbt/sampling/sampling_metadata.parquet` | One row per unique `(sample_id, country, date)` |
+
+---
+
+## Configuration
+
+All run parameters are set in `conf/base/parameters/tbt.yml`:
+
+```yaml
+tbt_options:
+  sample_id: 0273e3cc-a095-4e4a-aa33-b760433ed8fe  # ID of the sampling set to inspect
+  provider: Orbis          # provider under test
+  competitor: Genesis      # reference competitor
+  endpoint:                # optional custom provider endpoint
+  competitor_endpoint:     # optional custom competitor endpoint
+  product: latest          # map product version
+  mapdate: 2025-12-19      # map date
+  ignore_previous_inspections: True
+  error_classification_mode: False
+  avoid_duplicates: True   # fail if this sample_id was already inspected
+  skip_cleanup: False      # set True to skip data/tbt/* cleanup on startup
+```
+
+---
+
+## Running pipelines
+
+### Full inspection
+
+```bash
+kedro run --pipeline=tbt_inspection
+```
+
+### Sub-pipelines (selective execution)
+
+| Command | What it runs |
+|---|---|
+| `kedro run --pipeline=tbt_inspection_pre` | Cleanup → empty inspection files → sampling files |
+| `kedro run --pipeline=tbt_inspection_core` | Provider routes → RAC → FCD → merge |
+| `kedro run --pipeline=tbt_inspection_post` | Sanity checks → CSV/Spark/SQL export |
+
+> **Note:** Running `tbt_inspection_core` or `tbt_inspection_post` standalone requires that the previous sub-pipeline has already been run and its output files exist.
+
+---
+
+## Pipeline DAG
+
+```
+tbt_clean_data_directories          (cleanup)
+          │ tbt_cleanup_done
+tbt_initialize_inspection_data      (empty parquet schemas)
+          │ tbt_init_done
+tbt_initialize_sampling_data        (sampling from GeoJSON)
+          │ tbt_sampling_init_done
+          ▼
+tbt_provider_routes_node            (call provider API)
+          │
+tbt_reuse_static_routes_node        (reuse cached routes)
+          │
+tbt_competitor_routes_node          (call competitor API)
+          │
+tbt_get_rac_state                   (RAC computation)
+          │
+tbt_get_fcd_state                   (FCD + ML model)
+          │
+tbt_merge_inspection_data           (assemble results)
+          │
+tbt_sanity_check_node               (data quality)
+          │
+tbt_export_node                     (CSV / Spark / SQL)
+```
+
+---
+
+## Scripts
+
+| Script | Description |
+|---|---|
+| `convert_routes2check_to_geojson.py` | Converts `li_input/csv/Routes2check.csv` → `li_input/geojson/Routes2check.geojson` |
+| `generate_empty_inspection_routes.py` | Creates empty `inspection_routes.parquet` |
+| `generate_empty_inspection_metadata.py` | Creates empty `inspection_metadata.parquet` |
+| `generate_empty_inspection_critical_sections.py` | Creates empty `inspection_critical_sections.parquet` |
+| `generate_empty_inspection_critical_sections_with_mcp_feedback.py` | Creates empty `critical_sections_with_mcp_feedback.parquet` |
+| `generate_sampling_samples.py` | Creates `sampling_samples.parquet` from GeoJSON |
+| `generate_sampling_metadata.py` | Creates `sampling_metadata.parquet` from GeoJSON |
+
+> All `generate_empty_inspection_*.py` and `generate_sampling_*.py` scripts are called automatically by the pre-inspection pipeline. They can also be run manually with `python3 scripts/<script_name>.py`.
+
+---
+
+## Output data
+
+After a successful run, results are available in two forms:
+
+**Parquet** (in `data/tbt/inspection/`):
+
+| File | Description |
+|---|---|
+| `inspection_routes` | Provider vs competitor routes with RAC state |
+| `inspection_critical_sections` | Critical sections with FCD state |
+| `critical_sections_with_mcp_feedback` | MCP-annotated critical sections |
+| `inspection_metadata` | Run metadata (timing, API calls, sanity status) |
+| `error_logs` | Per-route error details |
+
+**CSV** (in `output/`): same files exported as flat CSV for easy inspection.
+
+---
+
+## Development
+
+### Run tests
+
+```bash
+cd src
+pytest
+```
+
+### Lint & format
+
+```bash
+isort .
+black .
+```
+
+### Generate docs
+
+```bash
+cd docs
+make html
+```
