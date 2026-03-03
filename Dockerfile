@@ -31,9 +31,12 @@ FROM base as dependencies
 # Copy requirements first for better caching
 COPY src/requirements.txt /app/requirements.txt
 
-# Install Python dependencies
+# Upgrade typing-extensions first to avoid conflicts
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --upgrade typing-extensions>=4.6.0
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install additional dependencies for API and Redis Queue
 RUN pip install --no-cache-dir \
