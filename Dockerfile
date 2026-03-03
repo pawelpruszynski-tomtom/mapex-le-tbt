@@ -2,14 +2,24 @@
 FROM python:3.9-slim as base
 
 # Install Java (required for PySpark) and other system dependencies
-RUN apt-get update && apt-get install -y \
-    openjdk-11-jre-headless \
-    postgresql-client \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    ca-certificates \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    postgresql-client && \
+    # Add Adoptium repository for Java 11
+    mkdir -p /etc/apt/keyrings && \
+    wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc && \
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends temurin-11-jre && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set Java environment
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/temurin-11-jre-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Set working directory
