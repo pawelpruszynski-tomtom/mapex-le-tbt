@@ -39,10 +39,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN pip install --no-cache-dir \
     fastapi==0.104.1 \
     uvicorn[standard]==0.24.0 \
-    redis==5.0.1 \
-    rq==1.15.1 \
     python-multipart==0.0.6 \
     celery[redis]==5.3.4 \
+    rq==1.15.1 \
     fcd_py==5.0.854 --extra-index-url https://svc-ar-maps-analytics-editor:AP5GYCYPFsETQzbsgnE8a6cjhNEcSvTaNTUvzNmkDHQTRt9GhcqKa3zAe9j2@artifactory.tomtomgroup.com/artifactory/api/pypi/maps-fcd-pypi-release/simple
 
 # Stage 3: Application
