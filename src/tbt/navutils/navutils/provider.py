@@ -23,9 +23,9 @@ from .zenrin import Zenrin
 from .genesysmap import Genesysmap
 from .orbis import Orbis
 
-API_KEY_GENESIS =
+API_KEY_GENESIS = "ZW6EMc883ATyRrv95HBadGvcP4fhTTrC"
 API_KEY_GOOGLE =
-API_KEY_AMIGOALPHA =
+API_KEY_AMIGOALPHA = "WO4yRlWojkD44QhvQVuaDExGxj84h30H"
 API_KEY_HERE =
 API_KEY_BING =
 API_KEY_KAKAO =
