@@ -32,6 +32,84 @@ The pipeline is implemented with [Kedro 0.18.4](https://kedro.readthedocs.io/) a
 
 ---
 
+## Docker Deployment
+
+The pipeline is fully containerized and can be deployed using Docker with Redis Queue for asynchronous job processing.
+
+**Note:** This deployment connects to your **existing Redis and PostgreSQL instances**. Make sure they are running and accessible before starting.
+
+### Prerequisites
+
+- Docker 20.10+ and Docker Compose 2.0+
+- **Existing Redis instance** (accessible from Docker containers)
+- **Existing PostgreSQL instance** (accessible from Docker containers)
+
+### Quick Start with Docker
+
+```bash
+# 1. Configure environment - connect to your existing services
+cp .env.example .env
+nano .env  # Edit: REDIS_HOST, REDIS_PORT, DB_HOST, DB_PORT, credentials
+
+# 2. Start application services (API + Workers only)
+./docker-start.sh
+
+# Or use Makefile
+make quick-start
+
+# 3. Submit inspection job via API
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@my_routes.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+```
+
+### Makefile Commands
+
+```bash
+make help           # Show all available commands
+make up             # Start all services
+make down           # Stop all services
+make logs           # Show logs from all services
+make health         # Check API health
+make stats          # Show queue statistics
+make scale-workers N=4  # Scale workers to 4
+```
+
+### Services
+
+**Application services** (deployed via Docker):
+
+| Service | Port | Description |
+|---------|------|-------------|
+| tbt-api | 8000 | REST API for job submission |
+| tbt-worker | - | RQ Workers (2 replicas) for processing |
+| rq-dashboard | 9181 | Job monitoring UI |
+
+**External services** (must be running separately):
+- **Redis** - Configured via REDIS_HOST, REDIS_PORT in .env
+- **PostgreSQL** - Configured via DB_HOST, DB_PORT in .env
+
+### API Endpoints
+
+- `POST /api/v1/inspection/submit` - Submit GeoJSON for inspection
+- `GET /api/v1/inspection/status/{job_id}` - Check job status
+- `GET /api/v1/inspection/queue/stats` - Queue statistics
+- `GET /docs` - Interactive API documentation
+
+### Features
+
+- ✅ **Async Processing** - Jobs run in background via Redis Queue
+- ✅ **Scalable Workers** - Multiple workers for parallel processing
+- ✅ **Job Monitoring** - Real-time status tracking via RQ Dashboard
+- ✅ **REST API** - Submit jobs with GeoJSON files
+- ✅ **Database Export** - Automatic export to PostgreSQL
+- ✅ **Docker Compose** - Single command deployment
+
+📖 **Full Documentation**: [docs/DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)
+
+---
+
 ## Project structure
 
 ```
