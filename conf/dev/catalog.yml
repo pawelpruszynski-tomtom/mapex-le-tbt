@@ -172,6 +172,25 @@ tbt_inspection_critical_sections_output_sql:
     date_format: "%Y-%m-%d %H:%M"
     decimal: .
 
+# Database outputs (pass-through datasets - actual export handled by export_to_database node)
+tbt_inspection_routes_output_db:
+  type: MemoryDataSet
+
+tbt_inspection_critical_sections_output_db:
+  type: MemoryDataSet
+
+tbt_critical_sections_with_mcp_feedback_output_db:
+  type: MemoryDataSet
+
+tbt_error_logs_output_db:
+  type: MemoryDataSet
+
+tbt_inspection_metadata_output_db:
+  type: MemoryDataSet
+
+export_to_database_ok:
+  type: MemoryDataSet
+
 tbt_scheduled_metrics_output_spark:
   type: spark.SparkDataSet
   filepath: data/tbt/metric_calculation/scheduled_metrics

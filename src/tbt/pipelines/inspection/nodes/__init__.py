@@ -16,7 +16,7 @@ from .rac import get_rac_state
 from .fcd import get_fcd_state, evaluate_with_ml_model
 from .merge import merge_inspection_data
 from .sanity import sanity_check, raise_sanity_error
-from .export import export_to_csv, export_to_spark, export_to_sql
+from .export import export_to_csv, export_to_spark, export_to_sql, export_to_database
 
 __all__ = [
     "clean_data_directories",
@@ -35,6 +35,7 @@ __all__ = [
     "export_to_csv",
     "export_to_spark",
     "export_to_sql",
+    "export_to_database",
 ]
 
 

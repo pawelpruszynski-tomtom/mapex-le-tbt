@@ -141,6 +141,43 @@ tbt_options:
   skip_cleanup: False      # set True to skip data/tbt/* cleanup on startup
 ```
 
+### Database Configuration
+
+The post-inspection pipeline now includes a database export step that saves inspection results to PostgreSQL.
+
+**Setup:**
+
+1. Copy `.env.example` to `.env` in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and fill in your database credentials:
+   ```dotenv
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=mapex_tbt
+   DB_USER=your_username
+   DB_PASSWORD=your_password
+   DB_SCHEMA=public
+   ```
+
+3. Test the database connection:
+   ```bash
+   python scripts/test_database_connection.py
+   ```
+
+4. Ensure PostgreSQL is running and the database exists.
+
+The database export creates the following tables:
+- `inspection_routes`
+- `inspection_critical_sections`
+- `critical_sections_with_mcp_feedback`
+- `error_logs`
+- `inspection_metadata`
+
+> **Note:** The `.env` file is automatically ignored by git to prevent committing sensitive credentials.
+
 ---
 
 ## Running pipelines
@@ -157,7 +194,7 @@ kedro run --pipeline=tbt_inspection
 |---|---|
 | `kedro run --pipeline=tbt_inspection_pre` | Cleanup → empty inspection files → sampling files |
 | `kedro run --pipeline=tbt_inspection_core` | Provider routes → RAC → FCD → merge |
-| `kedro run --pipeline=tbt_inspection_post` | Sanity checks → CSV/Spark/SQL export |
+| `kedro run --pipeline=tbt_inspection_post` | Sanity checks → CSV/Spark/PostgreSQL export |
 
 > **Note:** Running `tbt_inspection_core` or `tbt_inspection_post` standalone requires that the previous sub-pipeline has already been run and its output files exist.
 
@@ -187,7 +224,14 @@ tbt_merge_inspection_data           (assemble results)
           │
 tbt_sanity_check_node               (data quality)
           │
-tbt_export_node                     (CSV / Spark / SQL)
+          ├─► tbt_export_to_sql_node      (CSV export)
+          │
+          ├─► tbt_export_to_spark_node    (Spark parquet export)
+          │
+          ├─► tbt_export_to_database_node (PostgreSQL export)
+          │
+          ▼
+tbt_sanity_check_result             (final validation)
 ```
 
 ---
@@ -197,6 +241,7 @@ tbt_export_node                     (CSV / Spark / SQL)
 | Script | Description |
 |---|---|
 | `convert_routes2check_to_geojson.py` | Converts `li_input/csv/Routes2check.csv` → `li_input/geojson/Routes2check.geojson` |
+| `test_database_connection.py` | Tests database connection using credentials from `.env` file |
 | `generate_empty_inspection_routes.py` | Creates empty `inspection_routes.parquet` |
 | `generate_empty_inspection_metadata.py` | Creates empty `inspection_metadata.parquet` |
 | `generate_empty_inspection_critical_sections.py` | Creates empty `inspection_critical_sections.parquet` |

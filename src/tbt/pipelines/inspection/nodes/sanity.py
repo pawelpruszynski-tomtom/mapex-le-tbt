@@ -93,12 +93,14 @@ def sanity_check(
 def raise_sanity_error(
     export_to_spark_ok: bool,
     export_to_sql_ok: bool,
+    export_to_database_ok: bool,
     inspection_metadata: pd.DataFrame,
 ) -> bool:
     """Validate that sanity checks passed. Raises ``AssertionError`` on failure.
 
     :param export_to_spark_ok: Dummy input ensuring export_to_spark ran first.
     :param export_to_sql_ok: Dummy input ensuring export_to_sql ran first.
+    :param export_to_database_ok: Dummy input ensuring export_to_database ran first.
     :param inspection_metadata: Metadata with sanity results.
     :return: False if no error is found.
     """
@@ -106,6 +108,7 @@ def raise_sanity_error(
         inspection_metadata["sanity_fail"].values[0]
         and export_to_spark_ok
         and export_to_sql_ok
+        and export_to_database_ok
     ):
         log.info(
             "Result of sanity checks: Failed. Please check the output of this run carefully"
