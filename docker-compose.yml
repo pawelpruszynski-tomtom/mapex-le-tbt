@@ -8,8 +8,6 @@ services:
       dockerfile: Dockerfile
     container_name: tbt-api
     command: uvicorn tbt_api.main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8000:8000"
     volumes:
       - ./src:/app/src
       - ./conf:/app/conf
@@ -57,8 +55,6 @@ services:
   rq-dashboard:
     image: eoranged/rq-dashboard:latest
     container_name: tbt-rq-dashboard
-    ports:
-      - "9181:9181"
     environment:
       - RQ_DASHBOARD_REDIS_URL=redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}
     network_mode: "host"
