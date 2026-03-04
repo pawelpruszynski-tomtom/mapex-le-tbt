@@ -55,7 +55,7 @@ def fetch_route_data_from_db(sample_id: str) -> list:
         # Query to fetch route_data using sample_id as pipeline_id
         query = f"""
             SELECT route_data 
-            FROM {DB_SCHEMA}.pipeline_routes 
+            FROM {DB_SCHEMA}.routes 
             WHERE pipeline_id = %s
         """
 
