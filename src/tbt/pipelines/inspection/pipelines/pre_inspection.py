@@ -45,7 +45,7 @@ def create_pre_inspection_pipeline() -> kedro.pipeline.Pipeline:
             ),
             kedro.pipeline.node(
                 func=initialize_sampling_data,
-                inputs="tbt_init_done",
+                inputs=["tbt_init_done", "params:tbt_options"],
                 outputs="tbt_sampling_init_done",
                 name="tbt_initialize_sampling_data",
             ),

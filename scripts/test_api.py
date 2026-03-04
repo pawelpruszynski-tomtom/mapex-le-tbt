@@ -35,17 +35,17 @@ def check_api_health():
 
 
 def submit_inspection_job(
-    geojson_file_path: str,
+    pipeline_id: str,
     provider: str = "Orbis",
     competitor: str = "Genesis",
     product: str = "latest",
     mapdate: str = "2026-03-03"
 ):
     """
-    Submit a GeoJSON file for inspection.
+    Submit a pipeline_id for inspection.
 
     Args:
-        geojson_file_path: Path to GeoJSON file
+        pipeline_id: UUID of the pipeline in database
         provider: Provider name
         competitor: Competitor name
         product: Product version
@@ -55,43 +55,37 @@ def submit_inspection_job(
         dict: Response with job_id
     """
     print(f"\n📤 Submitting inspection job...")
-    print(f"   GeoJSON: {geojson_file_path}")
+    print(f"   Pipeline ID: {pipeline_id}")
     print(f"   Provider: {provider}")
     print(f"   Competitor: {competitor}")
 
-    # Check if file exists
-    if not Path(geojson_file_path).exists():
-        print(f"❌ File not found: {geojson_file_path}")
-        return None
-
     # Prepare request
-    with open(geojson_file_path, 'rb') as f:
-        files = {'geojson_file': (Path(geojson_file_path).name, f, 'application/json')}
-        data = {
-            'provider': provider,
-            'competitor': competitor,
-            'product': product,
-            'mapdate': mapdate
-        }
+    data = {
+        'pipeline_id': pipeline_id,
+        'provider': provider,
+        'competitor': competitor,
+        'product': product,
+        'mapdate': mapdate
+    }
 
-        try:
-            response = requests.post(API_SUBMIT_URL, files=files, data=data, timeout=30)
+    try:
+        response = requests.post(API_SUBMIT_URL, data=data, timeout=30)
 
-            if response.status_code == 200:
-                result = response.json()
-                print(f"\n✅ Job submitted successfully!")
-                print(f"   Job ID: {result['job_id']}")
-                print(f"   Sample ID: {result['sample_id']}")
-                print(f"   Status: {result['status']}")
-                return result
-            else:
-                print(f"❌ Failed to submit job: {response.status_code}")
-                print(f"   Error: {response.text}")
-                return None
-
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Request failed: {e}")
+        if response.status_code == 200:
+            result = response.json()
+            print(f"\n✅ Job submitted successfully!")
+            print(f"   Job ID: {result['job_id']}")
+            print(f"   Sample ID: {result['sample_id']}")
+            print(f"   Status: {result['status']}")
+            return result
+        else:
+            print(f"❌ Failed to submit job: {response.status_code}")
+            print(f"   Error: {response.text}")
             return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request failed: {e}")
+        return None
 
 
 def get_job_status(job_id: str):
@@ -189,24 +183,20 @@ def main():
         print("   docker-compose up -d")
         sys.exit(1)
 
-    # Get GeoJSON file path from command line or use default
+    # Get pipeline_id from command line
     if len(sys.argv) > 1:
-        geojson_path = sys.argv[1]
+        pipeline_id = sys.argv[1]
     else:
-        # Use example file
-        geojson_path = "li_input/geojson/Routes2check.geojson"
-
-        if not Path(geojson_path).exists():
-            print(f"\n❌ No GeoJSON file provided and default not found")
-            print(f"\nUsage:")
-            print(f"   python {sys.argv[0]} <path_to_geojson_file>")
-            print(f"\nExample:")
-            print(f"   python {sys.argv[0]} my_routes.geojson")
-            sys.exit(1)
+        print(f"\n❌ No pipeline_id provided")
+        print(f"\nUsage:")
+        print(f"   python {sys.argv[0]} <pipeline_id>")
+        print(f"\nExample:")
+        print(f"   python {sys.argv[0]} b294bb07-b9d6-4e6f-8100-b909fe6227df")
+        sys.exit(1)
 
     # Submit job
     result = submit_inspection_job(
-        geojson_path,
+        pipeline_id,
         provider="Orbis",
         competitor="Genesis"
     )

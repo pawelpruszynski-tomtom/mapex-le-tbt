@@ -7,7 +7,6 @@ This module contains the worker function that processes inspection jobs.
 import json
 import logging
 import os
-import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def run_inspection_pipeline(
     sample_id: str,
-    geojson_path: str,
+    pipeline_id: str,
     provider: str = "Orbis",
     competitor: str = "Genesis",
     product: str = "latest",
@@ -37,13 +36,13 @@ def run_inspection_pipeline(
     avoid_duplicates: bool = False
 ) -> dict:
     """
-    Run the TbT inspection pipeline with the provided GeoJSON file.
+    Run the TbT inspection pipeline with data from database.
 
     This function is executed by RQ workers.
 
     Args:
         sample_id: Unique identifier for this sample
-        geojson_path: Path to the GeoJSON file with routes
+        pipeline_id: UUID of the pipeline in database
         provider: Provider under test
         competitor: Reference competitor
         product: Map product version
@@ -58,7 +57,7 @@ def run_inspection_pipeline(
         dict: Result summary with paths to output files
     """
     start_time = datetime.utcnow()
-    logger.info(f"Starting inspection pipeline for sample {sample_id}")
+    logger.info(f"Starting inspection pipeline for sample {sample_id}, pipeline_id {pipeline_id}")
 
     try:
         # Import Kedro components
@@ -69,16 +68,11 @@ def run_inspection_pipeline(
         project_path = Path("/app")
         bootstrap_project(project_path)
 
-        # Copy GeoJSON to expected location
-        target_geojson = project_path / "li_input" / "geojson" / "Routes2check.geojson"
-        target_geojson.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(geojson_path, target_geojson)
-        logger.info(f"Copied GeoJSON from {geojson_path} to {target_geojson}")
-
-        # Update parameters
+        # Update parameters with pipeline_id
         params_to_update = {
             "tbt_options": {
                 "sample_id": sample_id,
+                "pipeline_id": pipeline_id,
                 "provider": provider,
                 "competitor": competitor,
                 "product": product,

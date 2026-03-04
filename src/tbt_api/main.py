@@ -120,7 +120,7 @@ async def health_check():
 
 @app.post("/api/v1/inspection/submit", response_model=JobSubmitResponse)
 async def submit_inspection(
-    geojson_file: UploadFile = File(..., description="GeoJSON file with routes"),
+    pipeline_id: str = Form(..., description="Pipeline ID from database"),
     provider: str = Form(default="Orbis"),
     competitor: str = Form(default="Genesis"),
     product: str = Form(default="latest"),
@@ -132,40 +132,21 @@ async def submit_inspection(
     avoid_duplicates: bool = Form(default=False)
 ):
     """
-    Submit a new inspection job with GeoJSON file.
+    Submit a new inspection job with pipeline_id from database.
 
-    The GeoJSON file should contain routes to inspect.
+    The pipeline_id references route data stored in the database.
     Returns a job_id that can be used to track the job status.
     """
     if not redis_conn or not inspection_queue:
         raise HTTPException(status_code=503, detail="Redis queue not available")
 
-    # Validate file type
-    if not geojson_file.filename.endswith(('.geojson', '.json')):
-        raise HTTPException(status_code=400, detail="File must be a GeoJSON (.geojson or .json)")
-
     # Generate sample_id
     sample_id = str(uuid.uuid4())
-
-    # Create upload directory
-    upload_dir = Path("/app/uploads")
-    upload_dir.mkdir(exist_ok=True)
-
-    # Save uploaded file
-    geojson_path = upload_dir / f"{sample_id}_routes.geojson"
-    try:
-        content = await geojson_file.read()
-        with open(geojson_path, "wb") as f:
-            f.write(content)
-        logger.info(f"Saved GeoJSON file to {geojson_path}")
-    except Exception as e:
-        logger.error(f"Failed to save GeoJSON file: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     # Create job parameters
     job_params = {
         "sample_id": sample_id,
-        "geojson_path": str(geojson_path),
+        "pipeline_id": pipeline_id,
         "provider": provider,
         "competitor": competitor,
         "product": product,
@@ -186,14 +167,14 @@ async def submit_inspection(
             result_ttl=86400,  # Keep result for 24 hours
             failure_ttl=86400  # Keep failed job info for 24 hours
         )
-        logger.info(f"Enqueued job {job.id} for sample {sample_id}")
+        logger.info(f"Enqueued job {job.id} for sample {sample_id}, pipeline_id {pipeline_id}")
 
         return JobSubmitResponse(
             job_id=job.id,
             status="queued",
             message="Inspection job submitted successfully",
             sample_id=sample_id,
-            geojson_path=str(geojson_path)
+            geojson_path=f"database://pipeline_id={pipeline_id}"
         )
     except Exception as e:
         logger.error(f"Failed to enqueue job: {e}")

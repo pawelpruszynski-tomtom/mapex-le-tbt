@@ -60,26 +60,17 @@ nano .env  # Edit: REDIS_HOST, REDIS_PORT, DB_HOST, DB_PORT, credentials
 # Or use Makefile
 make quick-start
 
-# 3. Submit inspection job via API
-# Note: GeoJSON file path is relative to where you run curl
+# 3. Submit inspection job via API with pipeline_id from database
 curl -X POST http://localhost:8000/api/v1/inspection/submit \
-  -F "geojson_file=@my_routes.geojson" \
+  -F "pipeline_id=b294bb07-b9d6-4e6f-8100-b909fe6227df" \
   -F "provider=Orbis" \
   -F "competitor=Genesis"
 
-# Examples with different paths:
-# From project root:
-curl -X POST http://localhost:8000/api/v1/inspection/submit \
-  -F "geojson_file=@li_input/geojson/Routes2check.geojson" \
-  -F "provider=Orbis" \
-  -F "competitor=Genesis"
-
-# From any directory (absolute path):
-curl -X POST http://localhost:8000/api/v1/inspection/submit \
-  -F "geojson_file=@/home/user/my_routes.geojson" \
-  -F "provider=Orbis" \
-  -F "competitor=Genesis"
+# 4. Check job status
+curl http://localhost:8000/api/v1/inspection/status/{job_id}
 ```
+
+**Note:** The system now reads route data from the PostgreSQL database table `tbt.pipeline_routes` based on the provided `pipeline_id`. See [docs/DATABASE_INPUT.md](docs/DATABASE_INPUT.md) for details.
 
 ### Makefile Commands
 
