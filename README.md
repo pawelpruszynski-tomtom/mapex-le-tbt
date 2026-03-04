@@ -464,7 +464,7 @@ tbt_sanity_check_result             (final validation)
 
 ## Output data
 
-After a successful run, results are available in two forms:
+After a successful run, results are available in multiple forms:
 
 **Parquet** (in `data/tbt/inspection/`):
 
@@ -477,6 +477,14 @@ After a successful run, results are available in two forms:
 | `error_logs` | Per-route error details |
 
 **CSV** (in `output/`): same files exported as flat CSV for easy inspection.
+
+**Database** (PostgreSQL):
+- All inspection tables are exported to the database schema (configured in `.env`)
+- **Error logs** are additionally exported to `leads` table in JSONB format:
+  - `pipeline_id`: Identifies the inspection run
+  - `source`: Always `'tbt'` for TbT inspections
+  - `lead_data`: JSONB with all error log fields
+  - See [docs/LEADS_EXPORT.md](docs/LEADS_EXPORT.md) for details and query examples
 
 ---
 

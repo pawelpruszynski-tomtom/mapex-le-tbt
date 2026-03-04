@@ -86,6 +86,7 @@ def create_post_inspection_pipeline() -> kedro.pipeline.Pipeline:
                     "tbt_critical_sections_with_mcp_feedback_sc",
                     "tbt_error_logs_sc",
                     "tbt_inspection_metadata_sc",
+                    "params:tbt_options",
                 ],
                 outputs=[
                     "tbt_inspection_routes_output_db",

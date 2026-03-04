@@ -22,9 +22,12 @@ def export_to_database(
     critical_sections_with_mcp_feedback: pd.DataFrame,
     error_logs: pd.DataFrame,
     inspection_metadata: pd.DataFrame,
+    tbt_options: dict,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
     """
     Export all inspection DataFrames to PostgreSQL database.
+
+    Error logs are exported to 'leads' table in JSONB format.
 
     Database credentials are loaded from environment variables:
     - DB_HOST: Database host
@@ -38,8 +41,9 @@ def export_to_database(
         inspection_routes: Routes inspection data
         inspection_critical_sections: Critical sections inspection data
         critical_sections_with_mcp_feedback: Critical sections with MCP feedback
-        error_logs: Error logs data
+        error_logs: Error logs data (exported to leads table)
         inspection_metadata: Inspection metadata
+        tbt_options: Pipeline options containing sample_id/pipeline_id
 
     Returns:
         Tuple of all input DataFrames plus success flag
@@ -72,7 +76,6 @@ def export_to_database(
 
         # Export each DataFrame to the database
         # Using if_exists='append' to add new data without dropping existing tables
-        # You can change to 'replace' to recreate tables each time
 
         log.info("Exporting inspection_routes to database...")
         inspection_routes.to_sql(
@@ -107,16 +110,48 @@ def export_to_database(
             chunksize=1000,
         )
 
-        log.info("Exporting error_logs to database...")
-        error_logs.to_sql(
-            name="error_logs",
-            con=engine,
-            schema=db_schema,
-            if_exists="append",
-            index=False,
-            method="multi",
-            chunksize=1000,
-        )
+        # Convert error_logs to leads format (JSONB)
+        log.info("Converting error_logs to leads format...")
+        pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
+
+        # Prepare leads data
+        import json
+        leads_data = []
+        for _, row in error_logs.iterrows():
+            lead_data = {
+                "run_id": row.get("run_id"),
+                "case_id": row.get("case_id"),
+                "route_id": row.get("route_id"),
+                "stretch": row.get("stretch"),
+                "provider_route": row.get("provider_route"),
+                "competitor_route": row.get("competitor_route"),
+                "country": row.get("country"),
+                "provider": row.get("provider"),
+                "competitor": row.get("competitor"),
+                "product": row.get("product"),
+            }
+
+            leads_data.append({
+                "pipeline_id": pipeline_id,
+                "source": "tbt",
+                "lead_data": json.dumps(lead_data),
+            })
+
+        leads_df = pd.DataFrame(leads_data)
+
+        log.info(f"Exporting {len(leads_df)} error_logs to leads table...")
+        if not leads_df.empty:
+            leads_df.to_sql(
+                name="leads",
+                con=engine,
+                schema=db_schema,
+                if_exists="append",
+                index=False,
+                method="multi",
+                chunksize=1000,
+            )
+        else:
+            log.info("No error logs to export to leads table")
 
         log.info("Exporting inspection_metadata to database...")
         inspection_metadata.to_sql(
