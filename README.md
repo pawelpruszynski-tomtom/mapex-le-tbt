@@ -8,6 +8,8 @@ Kedro-based pipeline for running **Turn-by-Turn (TbT) route inspections** — co
 ## Table of Contents
 
 - [Overview](#overview)
+- [Docker Deployment](#docker-deployment)
+- [Using the API](#using-the-api)
 - [Project structure](#project-structure)
 - [Setup](#setup)
 - [Input data](#input-data)
@@ -17,6 +19,7 @@ Kedro-based pipeline for running **Turn-by-Turn (TbT) route inspections** — co
 - [Scripts](#scripts)
 - [Output data](#output-data)
 - [Development](#development)
+- [FAQ](docs/FAQ.md)
 
 ---
 
@@ -58,8 +61,22 @@ nano .env  # Edit: REDIS_HOST, REDIS_PORT, DB_HOST, DB_PORT, credentials
 make quick-start
 
 # 3. Submit inspection job via API
+# Note: GeoJSON file path is relative to where you run curl
 curl -X POST http://localhost:8000/api/v1/inspection/submit \
   -F "geojson_file=@my_routes.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+
+# Examples with different paths:
+# From project root:
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@li_input/geojson/Routes2check.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+
+# From any directory (absolute path):
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@/home/user/my_routes.geojson" \
   -F "provider=Orbis" \
   -F "competitor=Genesis"
 ```
@@ -107,6 +124,129 @@ make scale-workers N=4  # Scale workers to 4
 - ✅ **Docker Compose** - Single command deployment
 
 📖 **Full Documentation**: [docs/DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)
+
+---
+
+## Using the API
+
+### Submitting Inspection Jobs
+
+The API accepts GeoJSON files for inspection. The file path in curl is **relative to your current directory**.
+
+#### Example 1: File in current directory
+
+```bash
+# If you're in the directory with your GeoJSON file:
+cd /path/to/directory/with/geojson
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@routes.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+```
+
+#### Example 2: File in project directory
+
+```bash
+# From project root (mapex-le-tbt/):
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@li_input/geojson/Routes2check.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+```
+
+#### Example 3: Absolute path
+
+```bash
+# Using absolute path (works from any directory):
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@/home/pruszyns/mapex-le-tbt/li_input/geojson/Routes2check.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis"
+```
+
+#### Example 4: Additional parameters
+
+```bash
+curl -X POST http://localhost:8000/api/v1/inspection/submit \
+  -F "geojson_file=@routes.geojson" \
+  -F "provider=Orbis" \
+  -F "competitor=Genesis" \
+  -F "product=latest" \
+  -F "mapdate=2026-03-03" \
+  -F "country=PL"
+```
+
+### Checking Job Status
+
+After submitting, you'll receive a `job_id`. Use it to check status:
+
+```bash
+# Save job_id from submit response
+JOB_ID="abc-123-def-456"
+
+# Check status
+curl http://localhost:8000/api/v1/inspection/status/$JOB_ID
+
+# Example response:
+# {
+#   "job_id": "abc-123-def-456",
+#   "status": "finished",
+#   "result": {
+#     "status": "success",
+#     "sample_id": "uuid-here",
+#     "duration_seconds": 145.3,
+#     "output_files": {...}
+#   }
+# }
+```
+
+### Python Client Usage
+
+```python
+from tbt_api.client import TbtInspectionClient
+
+# Create client
+client = TbtInspectionClient()
+
+# Submit and wait for completion
+result = client.submit_and_wait(
+    geojson_file="li_input/geojson/Routes2check.geojson",  # Path relative to script
+    provider="Orbis",
+    competitor="Genesis",
+    verbose=True
+)
+
+print(f"Status: {result['status']}")
+if result['status'] == 'finished':
+    print(f"Duration: {result['result']['duration_seconds']}s")
+```
+
+### Test Script Usage
+
+```bash
+# From project root
+python3 scripts/test_api.py li_input/geojson/Routes2check.geojson
+
+# Or with absolute path
+python3 scripts/test_api.py /full/path/to/routes.geojson
+
+# Or if GeoJSON is in current directory
+cd /path/to/geojson/files
+python3 /path/to/mapex-le-tbt/scripts/test_api.py routes.geojson
+```
+
+### Quick Reference: File Paths in curl
+
+The `@` symbol in curl tells it to read file content. Path can be:
+
+| Path Type | Example | Works from |
+|-----------|---------|------------|
+| **Relative** | `@routes.geojson` | Same directory as curl command |
+| **Relative** | `@../data/routes.geojson` | Parent directory |
+| **Relative** | `@li_input/geojson/Routes2check.geojson` | Project subdirectory |
+| **Absolute** | `@/home/user/routes.geojson` | Any directory |
+| **Windows** | `@C:\Users\user\routes.geojson` | Any directory (Windows) |
+| **WSL** | `@/mnt/c/Users/user/routes.geojson` | Any directory (WSL) |
 
 ---
 
