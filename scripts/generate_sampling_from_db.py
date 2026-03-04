@@ -273,6 +273,5 @@ if __name__ == "__main__":
     main(sample_id)
 
     pipeline_id = sys.argv[1]
-    sample_id = sys.argv[2]
-    main(pipeline_id, sample_id)
+    main(pipeline_id)
 
