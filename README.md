@@ -16,6 +16,7 @@ Kedro-based pipeline for running **Turn-by-Turn (TbT) route inspections** — co
 - [Configuration](#configuration)
 - [Running pipelines](#running-pipelines)
 - [Pipeline DAG](#pipeline-dag)
+- [Pipeline Steps Description](#pipeline-steps-description)
 - [Scripts](#scripts)
 - [Output data](#output-data)
 - [Development](#development)
@@ -25,13 +26,50 @@ Kedro-based pipeline for running **Turn-by-Turn (TbT) route inspections** — co
 
 ## Overview
 
-The project computes the **TbT metric** by:
+The project computes the **TbT (Turn-by-Turn) metric** by comparing routing quality between a provider under test and a reference competitor.
 
-1. **Pre-inspection** — cleaning stale data, creating empty parquet schemas and generating sampling files from a GeoJSON route list.
-2. **Core inspection** — calling provider & competitor routing APIs, computing RAC and FCD states, merging results.
-3. **Post-inspection** — sanity checks and export to CSV / Spark / SQL.
+### What does it do?
 
-The pipeline is implemented with [Kedro 0.18.4](https://kedro.readthedocs.io/) and [PySpark 3.3.2](https://spark.apache.org/).
+The pipeline performs automated quality assessment of routing providers by:
+
+1. **Pre-inspection** (Steps 1-3)
+   - Cleans stale data from previous runs
+   - Creates empty Parquet schemas for outputs
+   - Loads route definitions from PostgreSQL database (or GeoJSON file as fallback)
+   - Generates sampling files with route metadata
+
+2. **Core inspection** (Steps 4-8)
+   - Computes routes using **provider** API (e.g., Orbis, HERE, Google)
+   - Computes routes using **competitor** API (e.g., Genesis, TomTom)
+   - Analyzes route geometry differences using **RAC** (Route Adherence Classification)
+   - Applies **ML-based FCD** (Floating Car Data) model for error classification
+   - Identifies critical sections where routes differ significantly
+
+3. **Post-inspection** (Steps 9-14)
+   - Merges results with historical data
+   - Performs sanity checks on data quality
+   - Exports to multiple formats:
+     - **CSV** files for human review (`output/` directory)
+     - **Parquet** files for data analysis (`data/tbt/inspection/`)
+     - **PostgreSQL** database for integration (error logs → `leads` table in JSONB format)
+
+### Key Features
+
+✅ **Database-driven** - Route data from PostgreSQL, no file uploads needed  
+✅ **API-agnostic** - Supports multiple routing providers (Orbis, HERE, Google, TomTom, etc.)  
+✅ **ML-powered** - Automated error classification using FCD model  
+✅ **Scalable** - Async processing via Redis Queue, multiple workers  
+✅ **Historical tracking** - Reuses previously computed routes, maintains run history  
+✅ **Multi-format export** - CSV, Parquet, PostgreSQL with JSONB leads  
+
+### Technology Stack
+
+The pipeline is implemented with:
+- **[Kedro 0.18.4](https://kedro.readthedocs.io/)** - Pipeline orchestration framework
+- **[PySpark 3.3.2](https://spark.apache.org/)** - Distributed data processing
+- **[FastAPI](https://fastapi.tiangolo.com/)** - REST API for job submission
+- **[Redis Queue](https://python-rq.org/)** - Asynchronous job processing
+- **[PostgreSQL](https://www.postgresql.org/)** - Data storage and retrieval
 
 ---
 
@@ -416,7 +454,7 @@ tbt_clean_data_directories          (cleanup)
           │ tbt_cleanup_done
 tbt_initialize_inspection_data      (empty parquet schemas)
           │ tbt_init_done
-tbt_initialize_sampling_data        (sampling from GeoJSON)
+tbt_initialize_sampling_data        (sampling from database/GeoJSON)
           │ tbt_sampling_init_done
           ▼
 tbt_provider_routes_node            (call provider API)
@@ -437,10 +475,189 @@ tbt_sanity_check_node               (data quality)
           │
           ├─► tbt_export_to_spark_node    (Spark parquet export)
           │
-          ├─► tbt_export_to_database_node (PostgreSQL export)
+          ├─► tbt_export_to_database_node (PostgreSQL export + leads)
           │
           ▼
 tbt_sanity_check_result             (final validation)
+```
+
+---
+
+## Pipeline Steps Description
+
+The TbT inspection pipeline consists of three main phases with multiple steps:
+
+### Phase 1: Pre-Inspection (Preparation)
+
+#### Step 1: Clean Data Directories
+**Node:** `tbt_clean_data_directories`  
+**Purpose:** Removes stale data from previous runs  
+**Details:**
+- Cleans `data/tbt/inspection/` directory
+- Cleans `data/tbt/sampling/` directory
+- Ensures fresh start for new inspection run
+- Can be skipped by setting `skip_cleanup: True` in config
+
+#### Step 2: Initialize Inspection Data
+**Node:** `tbt_initialize_inspection_data`  
+**Purpose:** Creates empty Parquet files with correct schemas  
+**Details:**
+- Generates empty `inspection_routes.parquet`
+- Generates empty `inspection_critical_sections.parquet`
+- Generates empty `critical_sections_with_mcp_feedback.parquet`
+- Generates empty `inspection_metadata.parquet`
+- Ensures all output files exist even if pipeline fails mid-execution
+
+#### Step 3: Initialize Sampling Data
+**Node:** `tbt_initialize_sampling_data`  
+**Purpose:** Prepares route data for inspection  
+**Details:**
+- **Database mode** (if `pipeline_id` provided): Fetches routes from PostgreSQL table `tbt.pipeline_routes`
+- **Legacy mode** (if no `pipeline_id`): Reads routes from `li_input/geojson/Routes2check.geojson`
+- Generates `sampling_samples.parquet` (one row per route)
+- Generates `sampling_metadata.parquet` (one row per sample)
+- All routes are tagged with `sample_id` for tracking
+
+### Phase 2: Core Inspection (Route Computation & Analysis)
+
+#### Step 4: Get Provider Routes
+**Node:** `tbt_provider_routes_node`  
+**Purpose:** Computes routes using the provider under test  
+**Details:**
+- Calls provider routing API (Orbis, HERE, Google, etc.)
+- Processes all routes from sampling data filtered by `sample_id`
+- Extracts route geometry, travel time, distance
+- Handles API errors and timeouts
+- Records API call statistics
+
+#### Step 5: Reuse Static Routes
+**Node:** `tbt_reuse_static_routes_node`  
+**Purpose:** Reuses previously computed routes to avoid redundant API calls  
+**Details:**
+- Checks if routes were already computed in previous runs
+- Loads cached routes from historical data
+- Merges with newly computed routes
+- Reduces API costs and execution time
+
+#### Step 6: Get Competitor Routes
+**Node:** `tbt_competitor_routes_node`  
+**Purpose:** Computes routes using the reference competitor  
+**Details:**
+- Calls competitor routing API (Genesis, TomTom, etc.)
+- Uses same origin/destination pairs as provider
+- Extracts route geometry, travel time, distance
+- Provides baseline for comparison
+
+#### Step 7: Compute RAC State
+**Node:** `tbt_get_rac_state`  
+**Purpose:** Computes Route Adherence Classification (RAC) state  
+**Details:**
+- Compares provider route vs competitor route geometries
+- Classifies each route pair:
+  - `match` - routes are similar
+  - `no_match` - routes differ significantly
+  - `error` - computation failed
+- Uses geometric algorithms (Fréchet distance, Hausdorff distance)
+- Identifies critical sections where routes diverge
+
+#### Step 8: Compute FCD State
+**Node:** `tbt_get_fcd_state`  
+**Purpose:** Computes Floating Car Data (FCD) state using ML model  
+**Details:**
+- Analyzes critical sections identified by RAC
+- Applies ML model to classify errors:
+  - `true_error` - confirmed routing error
+  - `potential_error` - requires manual review
+  - `no_error` - acceptable difference
+- Computes metrics: PRA, PRB, PRAB, LIFT, TOT
+- Enriches critical sections with FCD classification
+
+### Phase 3: Post-Inspection (Export & Validation)
+
+#### Step 9: Merge Inspection Data
+**Node:** `tbt_merge_inspection_data`  
+**Purpose:** Aggregates all results into final output tables  
+**Details:**
+- Combines new routes with historical data
+- Combines new critical sections with historical data
+- Generates error logs (routes requiring manual review)
+- Creates inspection metadata (run statistics, timing, API calls)
+- Assigns unique `run_id` to this inspection run
+
+#### Step 10: Sanity Check
+**Node:** `tbt_sanity_check_node`  
+**Purpose:** Validates data quality before export  
+**Details:**
+- Checks if number of routes matches expected count
+- Validates critical sections are properly classified
+- Ensures metadata contains required fields
+- Flags suspicious results (e.g., 100% error rate)
+- Passes data through if quality checks pass
+
+#### Step 11: Export to CSV
+**Node:** `tbt_export_to_sql_node`  
+**Purpose:** Exports results to CSV files for easy inspection  
+**Details:**
+- Writes to `output/` directory
+- Creates: `inspection_routes.csv`, `inspection_critical_sections.csv`, 
+  `critical_sections_with_mcp_feedback.csv`, `error_logs.csv`, `inspection_metadata.csv`
+- Human-readable format for quick review
+
+#### Step 12: Export to Spark
+**Node:** `tbt_export_to_spark_node`  
+**Purpose:** Exports results to Spark Parquet format  
+**Details:**
+- Writes to `data/tbt/inspection/` directory
+- Parquet format for efficient storage and processing
+- Preserves data types and schema
+- Optimized for large-scale data analysis
+
+#### Step 13: Export to Database
+**Node:** `tbt_export_to_database_node`  
+**Purpose:** Exports results to PostgreSQL database  
+**Details:**
+- Connects to PostgreSQL using credentials from `.env`
+- Exports all inspection tables to configured schema
+- **Special handling for error_logs:**
+  - Converts to `leads` table format
+  - Stores as JSONB in `lead_data` column
+  - Tags with `pipeline_id` and `source='tbt'`
+- Enables integration with other systems
+- See [docs/LEADS_EXPORT.md](docs/LEADS_EXPORT.md) for details
+
+#### Step 14: Final Sanity Check
+**Node:** `tbt_sanity_check_result`  
+**Purpose:** Final validation after all exports  
+**Details:**
+- Verifies all exports completed successfully
+- Checks export flags from all export nodes
+- Raises error if critical issues detected
+- Marks inspection as complete if all checks pass
+
+---
+
+## Data Flow Summary
+
+```
+Input: pipeline_id (or GeoJSON file)
+   ↓
+Database/File: Route definitions
+   ↓
+Provider API: Compute provider routes
+   ↓
+Competitor API: Compute competitor routes
+   ↓
+RAC Analysis: Compare route geometries
+   ↓
+FCD Analysis: ML-based error classification
+   ↓
+Merge: Combine with historical data
+   ↓
+Validate: Sanity checks
+   ↓
+Export: CSV + Parquet + PostgreSQL (leads table)
+   ↓
+Output: Inspection results ready for review
 ```
 
 ---
