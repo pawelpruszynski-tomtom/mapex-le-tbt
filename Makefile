@@ -32,6 +32,11 @@ build: ## Build Docker images
 	@echo "$(BLUE)Building Docker images...$(NC)"
 	docker-compose build
 
+rebuild: ## Rebuild Docker images (no cache)
+	@echo "$(BLUE)Rebuilding Docker images (no cache)...$(NC)"
+	docker-compose build --no-cache
+	@echo "$(GREEN)✓ Images rebuilt$(NC)"
+
 up: setup ## Start all services
 	@echo "$(BLUE)Starting services...$(NC)"
 	docker-compose up -d

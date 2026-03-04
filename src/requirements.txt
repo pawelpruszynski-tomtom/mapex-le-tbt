@@ -31,3 +31,4 @@ azure-storage-blob~=12.23.1
 setuptools==70.3.0
 python-dotenv~=1.0.0
 psycopg2-binary~=2.9.9
+environs~=9.5.0
