@@ -34,7 +34,7 @@ COPY src/requirements.txt /app/requirements.txt
 # Upgrade pip and install critical dependencies first to avoid conflicts
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --upgrade typing-extensions>=4.6.0 && \
-    pip install --no-cache-dir marshmallow>=3.0.0,<4.0.0 apispec>=3.3.1,<7.0.0
+    pip install --no-cache-dir "marshmallow>=3.0.0,<4.0.0" "apispec>=3.3.1,<7.0.0"
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
