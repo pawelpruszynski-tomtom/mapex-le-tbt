@@ -7,7 +7,6 @@ via Redis Queue.
 
 import logging
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -135,17 +134,17 @@ async def submit_inspection(
     Submit a new inspection job with pipeline_id from database.
 
     The pipeline_id references route data stored in the database.
+    In this system, pipeline_id is also used as sample_id.
     Returns a job_id that can be used to track the job status.
     """
     if not redis_conn or not inspection_queue:
         raise HTTPException(status_code=503, detail="Redis queue not available")
 
-    # Generate sample_id
-    sample_id = str(uuid.uuid4())
+    # Use pipeline_id as sample_id (they are the same in this system)
+    sample_id = pipeline_id
 
     # Create job parameters
     job_params = {
-        "sample_id": sample_id,
         "pipeline_id": pipeline_id,
         "provider": provider,
         "competitor": competitor,
@@ -167,14 +166,14 @@ async def submit_inspection(
             result_ttl=86400,  # Keep result for 24 hours
             failure_ttl=86400  # Keep failed job info for 24 hours
         )
-        logger.info(f"Enqueued job {job.id} for sample {sample_id}, pipeline_id {pipeline_id}")
+        logger.info(f"Enqueued job {job.id} for sample_id/pipeline_id: {sample_id}")
 
         return JobSubmitResponse(
             job_id=job.id,
             status="queued",
             message="Inspection job submitted successfully",
             sample_id=sample_id,
-            geojson_path=f"database://pipeline_id={pipeline_id}"
+            geojson_path=f"database://sample_id={sample_id}"
         )
     except Exception as e:
         logger.error(f"Failed to enqueue job: {e}")

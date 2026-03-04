@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 def run_inspection_pipeline(
-    sample_id: str,
     pipeline_id: str,
     provider: str = "Orbis",
     competitor: str = "Genesis",
@@ -41,8 +40,7 @@ def run_inspection_pipeline(
     This function is executed by RQ workers.
 
     Args:
-        sample_id: Unique identifier for this sample
-        pipeline_id: UUID of the pipeline in database
+        pipeline_id: UUID of the pipeline in database (also used as sample_id)
         provider: Provider under test
         competitor: Reference competitor
         product: Map product version
@@ -56,8 +54,11 @@ def run_inspection_pipeline(
     Returns:
         dict: Result summary with paths to output files
     """
+    # Use pipeline_id as sample_id (they are the same in this system)
+    sample_id = pipeline_id
+
     start_time = datetime.utcnow()
-    logger.info(f"Starting inspection pipeline for sample {sample_id}, pipeline_id {pipeline_id}")
+    logger.info(f"Starting inspection pipeline for sample_id/pipeline_id: {sample_id}")
 
     try:
         # Import Kedro components

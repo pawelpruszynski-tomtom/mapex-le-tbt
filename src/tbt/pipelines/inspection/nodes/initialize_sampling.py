@@ -26,19 +26,24 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
     :raises FileNotFoundError: If the script is missing or data source not found.
     :raises RuntimeError: If the script exits with a non-zero return code.
     """
+    sample_id = tbt_options.get("sample_id", "")
     pipeline_id = tbt_options.get("pipeline_id")
+
+    # If pipeline_id is provided, use it as sample_id (they are the same)
+    if pipeline_id:
+        sample_id = pipeline_id
 
     if pipeline_id:
         # Use database source
-        log.info("Using database source for sampling data with pipeline_id: %s", pipeline_id)
+        log.info("Using database source for sampling data with pipeline_id/sample_id: %s", sample_id)
         script_path = _SCRIPTS_DIR / "generate_sampling_from_db.py"
 
         if not script_path.exists():
             raise FileNotFoundError(f"Database sampling script not found: {script_path}")
 
-        log.info("Running generate_sampling_from_db.py with pipeline_id=%s ...", pipeline_id)
+        log.info("Running generate_sampling_from_db.py with sample_id=%s ...", sample_id)
         result = subprocess.run(
-            ["python3", str(script_path), pipeline_id],
+            ["python3", str(script_path), sample_id],
             capture_output=True,
             text=True,
         )

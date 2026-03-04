@@ -81,15 +81,18 @@ python scripts/test_api.py b294bb07-b9d6-4e6f-8100-b909fe6227df
 ## Przepływ danych
 
 1. **API otrzymuje `pipeline_id`** w żądaniu POST do `/api/v1/inspection/submit`
-2. **Worker (RQ)** otrzymuje job z parametrem `pipeline_id`
-3. **Pipeline Kedro** przekazuje `pipeline_id` w `tbt_options`
-4. **Node `initialize_sampling_data`** wykrywa `pipeline_id` i uruchamia skrypt `generate_sampling_from_db.py`
+2. **Worker (RQ)** otrzymuje job z parametrem `pipeline_id` i używa go jako `sample_id`
+3. **Pipeline Kedro** przekazuje `sample_id` (= `pipeline_id`) w `tbt_options`
+4. **Node `initialize_sampling_data`** wykrywa `pipeline_id` i uruchamia skrypt `generate_sampling_from_db.py` z `sample_id`
 5. **Skrypt `generate_sampling_from_db.py`**:
    - Łączy się z bazą danych używając credentials z `.env`
-   - Pobiera wszystkie rekordy z `tbt.pipeline_routes` WHERE `pipeline_id = ?`
+   - Pobiera wszystkie rekordy z `tbt.pipeline_routes` WHERE `pipeline_id = sample_id`
    - Konwertuje `route_data` (JSONB) do formatu GeoJSON
+   - Ustawia `sample_id` we wszystkich trasach (sample_id = pipeline_id)
    - Generuje pliki parquet: `sampling_samples.parquet` i `sampling_metadata.parquet`
 6. **Pipeline kontynuuje** standardowe przetwarzanie używając wygenerowanych plików parquet
+
+**Uwaga:** W tym systemie `sample_id` i `pipeline_id` mają tę samą wartość.
 
 ## Fallback do GeoJSON
 
@@ -111,14 +114,17 @@ Jeśli `pipeline_id` nie jest podany w `tbt_options`, system automatycznie wraca
 
 ### Testowanie lokalne z bazą danych:
 
-```python
+```bash
 # scripts/generate_sampling_from_db.py
+python scripts/generate_sampling_from_db.py <sample_id>
+
+# Przykład (sample_id = pipeline_id):
 python scripts/generate_sampling_from_db.py b294bb07-b9d6-4e6f-8100-b909fe6227df
 ```
 
 Powinno wygenerować:
-- `data/tbt/sampling/sampling_samples.parquet`
-- `data/tbt/sampling/sampling_metadata.parquet`
+- `data/tbt/sampling/sampling_samples.parquet` (z podanym `sample_id` we wszystkich wierszach)
+- `data/tbt/sampling/sampling_metadata.parquet` (z podanym `sample_id`)
 
 ### Testowanie API:
 
