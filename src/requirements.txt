@@ -1,5 +1,7 @@
 kedro[pandas.CSVDataSet,pandas.ExcelDataSet,pandas.ParquetDataSet,plotly.PlotlyDataSet,plotly.JSONDataSet,spark.SparkDataSet]~=0.18.4        
 kedro~=0.18.4
+marshmallow>=3.0.0,<4.0.0
+apispec>=3.3.1,<7.0.0
 plotnine~=0.9.0
 sqlalchemy~=1.4.41
 shapely~=2.0.0
