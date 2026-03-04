@@ -9,5 +9,6 @@ tbt_options:
   ignore_previous_inspections: True
   error_classification_mode: False
   avoid_duplicates: True
+  skip_cleanup: False
 
 fcd_credentials: faked

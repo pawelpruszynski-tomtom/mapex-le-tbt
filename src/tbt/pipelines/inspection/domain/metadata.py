@@ -39,7 +39,7 @@ def build_inspection_metadata_record(
         "competitor": tbt_options["competitor"],
         "mcp_tasks": mcp_tasks,
         "completed": automatically_closed,
-        "inspection_date": datetime.now(),
+        "inspection_date": datetime.now().strftime("%Y-%m-%d"),
         "comment": comment,
         "rac_elapsed_time": tbt_get_rac_state_time,
         "fcd_elapsed_time": tbt_get_fcd_state_time,

@@ -1,0 +1,62 @@
+
+services:
+  # TbT API Service
+  tbt-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tbt-api
+    command: uvicorn tbt_api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./src:/app/src
+      - ./conf:/app/conf
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./li_input:/app/li_input
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./.env:/app/.env
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - PYTHONPATH=/app/src
+    network_mode: "host"
+    restart: unless-stopped
+
+  # RQ Worker for processing jobs
+  tbt-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: rq worker --url redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379} tbt-inspection
+    volumes:
+      - ./src:/app/src
+      - ./conf:/app/conf
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./li_input:/app/li_input
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - PYTHONPATH=/app/src
+    network_mode: "host"
+    restart: unless-stopped
+    deploy:
+      replicas: 2  # Run 2 workers for parallel processing
+
+  # RQ Dashboard (optional - for monitoring)
+  rq-dashboard:
+    image: eoranged/rq-dashboard:latest
+    container_name: tbt-rq-dashboard
+    environment:
+      - RQ_DASHBOARD_REDIS_URL=redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}
+    network_mode: "host"
+    restart: unless-stopped
+
+

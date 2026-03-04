@@ -9,6 +9,7 @@ import kedro.pipeline
 from ..nodes import (
     export_to_csv,
     export_to_spark,
+    export_to_database,
     raise_sanity_error,
     sanity_check,
 )
@@ -78,10 +79,31 @@ def create_post_inspection_pipeline() -> kedro.pipeline.Pipeline:
                 name="tbt_export_to_spark_node",
             ),
             kedro.pipeline.node(
+                func=export_to_database,
+                inputs=[
+                    "tbt_inspection_routes_sc",
+                    "tbt_inspection_critical_sections_sc",
+                    "tbt_critical_sections_with_mcp_feedback_sc",
+                    "tbt_error_logs_sc",
+                    "tbt_inspection_metadata_sc",
+                    "params:tbt_options",
+                ],
+                outputs=[
+                    "tbt_inspection_routes_output_db",
+                    "tbt_inspection_critical_sections_output_db",
+                    "tbt_critical_sections_with_mcp_feedback_output_db",
+                    "tbt_error_logs_output_db",
+                    "tbt_inspection_metadata_output_db",
+                    "export_to_database_ok",
+                ],
+                name="tbt_export_to_database_node",
+            ),
+            kedro.pipeline.node(
                 func=raise_sanity_error,
                 inputs=[
                     "export_to_spark_ok",
                     "export_to_sql_ok",
+                    "export_to_database_ok",
                     "tbt_inspection_metadata_sc",
                 ],
                 outputs="tbt_inspection_sanity_result",

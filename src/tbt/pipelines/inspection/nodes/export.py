@@ -1,13 +1,186 @@
-"""Nodes: export_to_csv, export_to_spark, export_to_sql — data export."""
+"""Nodes: export_to_csv, export_to_spark, export_to_sql, export_to_database — data export."""
 
 import logging
 import os
+from typing import Tuple
 
 import pandas as pd
 import pyspark.sql
 import pyspark.sql.types as T
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 log = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+def export_to_database(
+    inspection_routes: pd.DataFrame,
+    inspection_critical_sections: pd.DataFrame,
+    critical_sections_with_mcp_feedback: pd.DataFrame,
+    error_logs: pd.DataFrame,
+    inspection_metadata: pd.DataFrame,
+    tbt_options: dict,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
+    """
+    Export all inspection DataFrames to PostgreSQL database.
+
+    Error logs are exported to 'leads' table in JSONB format.
+
+    Database credentials are loaded from environment variables:
+    - DB_HOST: Database host
+    - DB_PORT: Database port
+    - DB_NAME: Database name
+    - DB_USER: Database username
+    - DB_PASSWORD: Database password
+    - DB_SCHEMA: Database schema (optional, defaults to 'public')
+
+    Args:
+        inspection_routes: Routes inspection data
+        inspection_critical_sections: Critical sections inspection data
+        critical_sections_with_mcp_feedback: Critical sections with MCP feedback
+        error_logs: Error logs data (exported to leads table)
+        inspection_metadata: Inspection metadata
+        tbt_options: Pipeline options containing sample_id/pipeline_id
+
+    Returns:
+        Tuple of all input DataFrames plus success flag
+    """
+    try:
+        # Get database credentials from environment variables
+        db_host = os.getenv("DB_HOST")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_name = os.getenv("DB_NAME")
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_schema = os.getenv("DB_SCHEMA", "public")
+
+        # Validate required credentials
+        if not all([db_host, db_name, db_user, db_password]):
+            raise ValueError(
+                "Missing required database credentials. "
+                "Please ensure DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD are set in .env file"
+            )
+
+        # Create database connection string
+        connection_string = (
+            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        )
+
+        # Create SQLAlchemy engine
+        engine = create_engine(connection_string)
+
+        log.info(f"Connecting to database: {db_host}:{db_port}/{db_name}")
+
+        # Export each DataFrame to the database
+        # Using if_exists='append' to add new data without dropping existing tables
+
+        log.info("Exporting inspection_routes to database...")
+        inspection_routes.to_sql(
+            name="inspection_routes",
+            con=engine,
+            schema=db_schema,
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000,
+        )
+
+        log.info("Exporting inspection_critical_sections to database...")
+        inspection_critical_sections.to_sql(
+            name="inspection_critical_sections",
+            con=engine,
+            schema=db_schema,
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000,
+        )
+
+        log.info("Exporting critical_sections_with_mcp_feedback to database...")
+        critical_sections_with_mcp_feedback.to_sql(
+            name="critical_sections_with_mcp_feedback",
+            con=engine,
+            schema=db_schema,
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000,
+        )
+
+        # Convert error_logs to leads format (JSONB)
+        log.info("Converting error_logs to leads format...")
+        pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
+
+        # Prepare leads data
+        import json
+        leads_data = []
+        for _, row in error_logs.iterrows():
+            lead_data = {
+                "run_id": row.get("run_id"),
+                "case_id": row.get("case_id"),
+                "route_id": row.get("route_id"),
+                "stretch": row.get("stretch"),
+                "provider_route": row.get("provider_route"),
+                "competitor_route": row.get("competitor_route"),
+                "country": row.get("country"),
+                "provider": row.get("provider"),
+                "competitor": row.get("competitor"),
+                "product": row.get("product"),
+            }
+
+            leads_data.append({
+                "pipeline_id": pipeline_id,
+                "source": "tbt",
+                "lead_data": json.dumps(lead_data),
+            })
+
+        leads_df = pd.DataFrame(leads_data)
+
+        log.info(f"Exporting {len(leads_df)} error_logs to leads table...")
+        if not leads_df.empty:
+            leads_df.to_sql(
+                name="leads",
+                con=engine,
+                schema=db_schema,
+                if_exists="append",
+                index=False,
+                method="multi",
+                chunksize=1000,
+            )
+        else:
+            log.info("No error logs to export to leads table")
+
+        log.info("Exporting inspection_metadata to database...")
+        inspection_metadata.to_sql(
+            name="inspection_metadata",
+            con=engine,
+            schema=db_schema,
+            if_exists="append",
+            index=False,
+            method="multi",
+            chunksize=1000,
+        )
+
+        log.info("Successfully exported all data to database")
+
+        # Close the connection
+        engine.dispose()
+
+        return (
+            inspection_routes,
+            inspection_critical_sections,
+            critical_sections_with_mcp_feedback,
+            error_logs,
+            inspection_metadata,
+            True,
+        )
+
+    except Exception as e:
+        log.error(f"Failed to export data to database: {str(e)}")
+        raise
 
 
 def export_to_sql(
@@ -154,14 +327,14 @@ def export_to_spark(
                     T.StructField("sample_id", T.StringType()),
                     T.StructField("provider", T.StringType()),
                     T.StructField("endpoint", T.StringType()),
-                    T.StructField("mapdate", T.DateType()),
+                    T.StructField("mapdate", T.StringType()),
                     T.StructField("product", T.StringType()),
                     T.StructField("country", T.StringType()),
                     T.StructField("mode", T.StringType()),
                     T.StructField("competitor", T.StringType()),
                     T.StructField("mcp_tasks", T.StringType()),
                     T.StructField("completed", T.StringType()),
-                    T.StructField("inspection_date", T.DateType()),
+                    T.StructField("inspection_date", T.StringType()),
                     T.StructField("comment", T.StringType()),
                     T.StructField("rac_elapsed_time", T.FloatType()),
                     T.StructField("fcd_elapsed_time", T.FloatType()),

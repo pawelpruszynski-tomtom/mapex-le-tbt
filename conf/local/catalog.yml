@@ -14,7 +14,7 @@ tbt_m14scope_delta:
 #---------------------
 tbt_sampling_samples_sdf:
   type: spark.SparkDataSet
-  filepath: data/tbt/sampling/sampling_samples_Riyadh.parquet
+  filepath: data/tbt/sampling/sampling_samples.parquet
   file_format: parquet
   save_args:
     mode: append
@@ -22,7 +22,7 @@ tbt_sampling_samples_sdf:
 
 tbt_sampling_metadata_sdf:
   type: spark.SparkDataSet
-  filepath: data/tbt/sampling/sampling_metadata_Riyadh.parquet
+  filepath: data/tbt/sampling/sampling_metadata.parquet
   file_format: parquet
   save_args:
     mode: append

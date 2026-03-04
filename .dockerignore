@@ -1,0 +1,76 @@
+# Docker ignore file for TbT Inspection Pipeline
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Data directories (too large for container build)
+data/tbt/inspection/**
+data/tbt/sampling/**
+!data/tbt/inspection/.gitkeep
+!data/tbt/sampling/.gitkeep
+
+# Output
+output/**
+!output/.gitkeep
+
+# Logs
+logs/**
+*.log
+!logs/.gitkeep
+
+# Uploads
+uploads/**
+!uploads/.gitkeep
+
+# Local configuration
+conf/local/**
+!conf/local/.gitkeep
+
+# Environment files
+.env
+.env.local
+
+# Git
+.git/
+.gitignore
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Test coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Large files
+*.parquet
+*.csv
+*.dump
+

@@ -32,6 +32,7 @@ def create_core_inspection_pipeline() -> kedro.pipeline.Pipeline:
                     "params:tbt_options",
                     "tbt_sampling_samples_sdf",
                     "tbt_sampling_metadata_sdf",
+                    "tbt_sampling_init_done",
                 ],
                 outputs=[
                     "tbt_provider_routes",
