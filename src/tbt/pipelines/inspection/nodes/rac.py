@@ -10,6 +10,7 @@ from pyspark.sql.functions import col
 import tbt.navutils.common.decorators as decorators
 from tbt.navutils.navutils.provider import Provider
 from tbt.pipelines.inspection.domain.rac_evaluation import evaluate_rac_for_route
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -101,6 +102,12 @@ def get_rac_state(
         for key in competitor_api_calls
     }
     log.info(
+        "Computed %i RAC routes in %.2f s, API calls: %s",
+        rac_routes.count(),
+        total_time,
+        api_calls,
+    )
+    conditional_print(
         "Computed %i RAC routes in %.2f s, API calls: %s",
         rac_routes.count(),
         total_time,

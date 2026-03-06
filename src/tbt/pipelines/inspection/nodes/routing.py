@@ -14,6 +14,7 @@ from tbt.pipelines.inspection.domain.route_computation import (
     compute_single_competitor_route,
     compute_single_provider_route,
 )
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ def get_provider_routes(
     origins_destinations = tbt_sampling_samples.filter(col("sample_id") == sample_id)
     counts = origins_destinations.count()
     log.info("Computing %i routes from sample_id=%s", counts, sample_id)
+    conditional_print("Computing %i routes from sample_id=%s", counts, sample_id)
 
     # Initialize API call accumulators
     spark_context = pyspark.sql.SparkSession.builder.getOrCreate().sparkContext
@@ -106,6 +108,13 @@ def get_provider_routes(
         total_time,
         prov.api_calls,
     )
+    conditional_print(
+        "Computed %i routes for provider %s in %.2f s, API calls: %s",
+        counts,
+        provider,
+        total_time,
+        prov.api_calls,
+    )
 
     spark = pyspark.sql.SparkSession.builder.getOrCreate()
     provider_routes = spark.createDataFrame(
@@ -145,9 +154,11 @@ def get_competitor_routes(
     ignore_previous_inspections = tbt_options["ignore_previous_inspections"]
     if ignore_previous_inspections:
         log.info("Ignoring previous inspections...")
+        conditional_print("Ignoring previous inspections...")
         tbt_inspection_routes = tbt_inspection_routes.limit(0)
 
     log.info("Retrieving competitor routes from past inspections")
+    conditional_print("Retrieving competitor routes from past inspections")
 
     competitor_routes = (
         provider_routes_unknown.select(
@@ -180,7 +191,12 @@ def get_competitor_routes(
         "There are %i competitor routes that can be reused from past inspections",
         competitor_routes_known.count(),
     )
+    conditional_print(
+        "There are %i competitor routes that can be reused from past inspections",
+        competitor_routes_known.count(),
+    )
     log.info("Computing %i competitor routes", competitor_routes_unknown.count())
+    conditional_print("Computing %i competitor routes", competitor_routes_unknown.count())
 
     spark_context = pyspark.sql.SparkSession.builder.getOrCreate().sparkContext
 
@@ -211,6 +227,7 @@ def get_competitor_routes(
     )
 
     log.info(f"Provider name is {prov.name}, endpoint is {prov.endpoint}")
+    conditional_print(f"Provider name is {prov.name}, endpoint is {prov.endpoint}")
 
     def _map_competitor(row):
         return compute_single_competitor_route(row, prov)
@@ -238,6 +255,7 @@ def get_competitor_routes(
         .cache()
     )
     log.info("Computed %i competitor routes", competitor_routes_unknown.count())
+    conditional_print("Computed %i competitor routes", competitor_routes_unknown.count())
 
     competitor_routes = competitor_routes_unknown.select(
         "country", "sample_id", "route_id", "competitor",
@@ -257,6 +275,12 @@ def get_competitor_routes(
     }
 
     log.info(
+        "Returning %i competitor routes in %.2f s, API calls: %s",
+        competitor_routes.count(),
+        total_time,
+        competitor_api_calls,
+    )
+    conditional_print(
         "Returning %i competitor routes in %.2f s, API calls: %s",
         competitor_routes.count(),
         total_time,

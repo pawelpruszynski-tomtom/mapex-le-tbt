@@ -4,6 +4,8 @@ import logging
 import subprocess
 from pathlib import Path
 
+from tbt.utils.console_print import conditional_print
+
 log = logging.getLogger(__name__)
 
 _SCRIPTS_DIR = Path(__file__).parents[5] / "scripts"
@@ -36,6 +38,7 @@ def initialize_inspection_data(cleanup_done: bool) -> bool:
             )
 
         log.info("Running %s ...", script_name)
+        conditional_print("Running %s ...", script_name)
         result = subprocess.run(
             ["python", str(script_path)],
             capture_output=True,
@@ -44,6 +47,7 @@ def initialize_inspection_data(cleanup_done: bool) -> bool:
 
         if result.stdout:
             log.info(result.stdout.strip())
+            conditional_print(result.stdout.strip())
         if result.stderr:
             log.warning(result.stderr.strip())
 

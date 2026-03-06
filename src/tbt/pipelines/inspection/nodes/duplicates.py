@@ -4,6 +4,8 @@ import logging
 
 import pandas as pd
 
+from tbt.utils.console_print import conditional_print
+
 log = logging.getLogger(__name__)
 
 
@@ -33,6 +35,9 @@ def check_duplicates(tbt_options: dict, inspection_metadata: pd.DataFrame) -> bo
 
     if duplicates:
         log.info(
+            "Inspection already exists for this sample_id, provider, competitor and product"
+        )
+        conditional_print(
             "Inspection already exists for this sample_id, provider, competitor and product"
         )
         raise ValueError(

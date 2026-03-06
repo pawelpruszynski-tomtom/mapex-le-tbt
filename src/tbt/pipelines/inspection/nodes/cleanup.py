@@ -4,6 +4,8 @@ import logging
 import shutil
 from pathlib import Path
 
+from tbt.utils.console_print import conditional_print
+
 log = logging.getLogger(__name__)
 
 _DIRS_TO_CLEAN = [
@@ -25,6 +27,7 @@ def clean_data_directories(tbt_options: dict) -> bool:
     """
     if tbt_options.get("skip_cleanup", False):
         log.info("Cleanup skipped (skip_cleanup=True).")
+        conditional_print("Cleanup skipped (skip_cleanup=True).")
         return True
 
     for dir_path_str in _DIRS_TO_CLEAN:
@@ -42,6 +45,7 @@ def clean_data_directories(tbt_options: dict) -> bool:
             removed_count += 1
 
         log.info("Cleaned %d item(s) from %s", removed_count, dir_path)
+        conditional_print("Cleaned %d item(s) from %s", removed_count, dir_path)
 
     return True
 

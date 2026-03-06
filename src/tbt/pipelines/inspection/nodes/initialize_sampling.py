@@ -5,6 +5,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from tbt.utils.console_print import conditional_print
+
 log = logging.getLogger(__name__)
 
 _SCRIPTS_DIR = Path(__file__).parents[5] / "scripts"
@@ -36,12 +38,14 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
     if pipeline_id:
         # Use database source
         log.info("Using database source for sampling data with pipeline_id/sample_id: %s", sample_id)
+        conditional_print("Using database source for sampling data with pipeline_id/sample_id: %s", sample_id)
         script_path = _SCRIPTS_DIR / "generate_sampling_from_db.py"
 
         if not script_path.exists():
             raise FileNotFoundError(f"Database sampling script not found: {script_path}")
 
         log.info("Running generate_sampling_from_db.py with sample_id=%s ...", sample_id)
+        conditional_print("Running generate_sampling_from_db.py with sample_id=%s ...", sample_id)
         result = subprocess.run(
             ["python3", str(script_path), sample_id],
             capture_output=True,
@@ -50,6 +54,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
 
         if result.stdout:
             log.info(result.stdout.strip())
+            conditional_print(result.stdout.strip())
         if result.stderr:
             log.warning(result.stderr.strip())
 
@@ -61,6 +66,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
     else:
         # Fallback to GeoJSON file (legacy mode)
         log.info("Using GeoJSON file for sampling data (legacy mode)")
+        conditional_print("Using GeoJSON file for sampling data (legacy mode)")
         geojson_path = Path(__file__).parents[5] / "li_input" / "geojson" / "Routes2check.geojson"
 
         if not geojson_path.exists():
@@ -80,6 +86,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
                 raise FileNotFoundError(f"Sampling script not found: {script_path}")
 
             log.info("Running %s ...", script_name)
+            conditional_print("Running %s ...", script_name)
             result = subprocess.run(
                 ["python3", str(script_path)],
                 capture_output=True,
@@ -88,6 +95,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
 
             if result.stdout:
                 log.info(result.stdout.strip())
+                conditional_print(result.stdout.strip())
             if result.stderr:
                 log.warning(result.stderr.strip())
 

@@ -2,6 +2,9 @@ version: 1
 
 disable_existing_loggers: False
 
+# Enable or disable console print statements alongside log.info
+enable_console_prints: True
+
 formatters:
   simple:
     format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

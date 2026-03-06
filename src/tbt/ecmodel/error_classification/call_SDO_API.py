@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import logging
 
+from tbt.utils.console_print import conditional_print
+
 log = logging.getLogger(__name__)
 
 def call_wms(
@@ -49,6 +51,7 @@ def call_wms(
         if r.status_code==200:
             if "Exception" in str(r.content):                
                 log.info(r.content)
+                conditional_print(r.content)
                 return None
             else:
                 sdo_json = json.loads(r.content)
