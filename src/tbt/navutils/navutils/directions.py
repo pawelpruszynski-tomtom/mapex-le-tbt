@@ -220,9 +220,9 @@ class Directions(BaseProvider):
         )
         try:
             try:
-                print(url)
+                # print(url)
                 request = requests.get(url, timeout=600)
-                print(request.status_code)
+                # print(request.status_code)
             except requests.exceptions.SSLError:
                 # https://jira.tomtomgroup.com/browse/OMA-534 for KOR
                 request = requests.get(url, timeout=600, verify=False)

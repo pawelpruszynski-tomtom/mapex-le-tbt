@@ -1,34 +1,29 @@
 """Utility module for conditional console printing alongside logging."""
 
 import os
-import yaml
-from pathlib import Path
+import sys
 
 
-def _load_logging_config():
-    """Load logging configuration from logging.yml."""
-    try:
-        # Try to find the logging.yml file
-        config_paths = [
-            Path(__file__).parents[3] / "conf" / "base" / "logging.yml",
-            Path("conf") / "base" / "logging.yml",
-        ]
+def _is_console_prints_enabled() -> bool:
+    """
+    Check if console prints are enabled via the ENABLE_CONSOLE_PRINTS env variable.
 
-        for config_path in config_paths:
-            if config_path.exists():
-                with open(config_path, 'r') as f:
-                    return yaml.safe_load(f)
-
-        # If file not found, return default config
-        return {"enable_console_prints": True}
-    except Exception:
-        # On any error, default to enabled
-        return {"enable_console_prints": True}
+    Reads the ``ENABLE_CONSOLE_PRINTS`` environment variable (set in the root
+    ``.env`` file).  Any value other than ``"false"``, ``"0"`` or ``"no"``
+    (case-insensitive) is treated as *enabled*.  Defaults to ``True`` when the
+    variable is not set at all.
+    """
+    raw = os.environ.get("ENABLE_CONSOLE_PRINTS", "true").strip().lower()
+    return raw not in ("false", "0", "no")
 
 
 def _conditional_print_base(prefix: str, message: str, *args, **kwargs):
     """
     Base function for conditional printing with level prefix.
+
+    Writes directly to ``sys.__stdout__`` (the original stdout, bypassing any
+    redirection that Celery or Kedro may apply to ``sys.stdout``) and flushes
+    immediately so the line appears in docker-compose logs without delay.
 
     Args:
         prefix: Level prefix (e.g., "INFO", "WARNING", "ERROR")
@@ -36,31 +31,33 @@ def _conditional_print_base(prefix: str, message: str, *args, **kwargs):
         *args: Arguments to format the message
         **kwargs: Keyword arguments (currently unused, for future compatibility)
     """
-    config = _load_logging_config()
+    if not _is_console_prints_enabled():
+        return
 
-    if config.get("enable_console_prints", True):
-        if args:
-            # Format the message with provided arguments
-            try:
-                formatted_message = message % args
-            except (TypeError, ValueError):
-                # If formatting fails, print as-is
-                formatted_message = str(message) + " " + " ".join(str(arg) for arg in args)
-        else:
-            formatted_message = message
+    if args:
+        try:
+            formatted_message = message % args
+        except (TypeError, ValueError):
+            formatted_message = str(message) + " " + " ".join(str(arg) for arg in args)
+    else:
+        formatted_message = str(message)
 
-        if prefix:
-            print(f"[{prefix}] {formatted_message}")
-        else:
-            print(formatted_message)
+    line = f"[{prefix}] {formatted_message}" if prefix else formatted_message
+
+    # Use sys.__stdout__ to bypass any Celery/Kedro stdout redirection.
+    # Fall back to sys.stdout if __stdout__ is None (e.g. in some test envs).
+    out = sys.__stdout__ or sys.stdout
+    out.write(line + "\n")
+    out.flush()
 
 
 def conditional_print(message: str, *args, **kwargs):
     """
-    Print INFO level message to console if enabled in logging.yml configuration.
+    Print INFO level message to console if enabled via ENABLE_CONSOLE_PRINTS env variable.
 
-    This function checks the 'enable_console_prints' setting in conf/base/logging.yml
-    and prints the message only if it's set to True.
+    This function checks the ``ENABLE_CONSOLE_PRINTS`` environment variable
+    (defined in the root ``.env`` file) and prints the message only if it is
+    set to a truthy value (anything other than ``false``, ``0`` or ``no``).
 
     Args:
         message: The message to print (can contain format placeholders)
@@ -76,7 +73,7 @@ def conditional_print(message: str, *args, **kwargs):
 
 def conditional_print_warning(message: str, *args, **kwargs):
     """
-    Print WARNING level message to console if enabled in logging.yml configuration.
+    Print WARNING level message to console if enabled via ENABLE_CONSOLE_PRINTS env variable.
 
     Args:
         message: The message to print (can contain format placeholders)
@@ -91,7 +88,7 @@ def conditional_print_warning(message: str, *args, **kwargs):
 
 def conditional_print_error(message: str, *args, **kwargs):
     """
-    Print ERROR level message to console if enabled in logging.yml configuration.
+    Print ERROR level message to console if enabled via ENABLE_CONSOLE_PRINTS env variable.
 
     Args:
         message: The message to print (can contain format placeholders)
@@ -106,7 +103,7 @@ def conditional_print_error(message: str, *args, **kwargs):
 
 def conditional_print_debug(message: str, *args, **kwargs):
     """
-    Print DEBUG level message to console if enabled in logging.yml configuration.
+    Print DEBUG level message to console if enabled via ENABLE_CONSOLE_PRINTS env variable.
 
     Args:
         message: The message to print (can contain format placeholders)
@@ -121,7 +118,7 @@ def conditional_print_debug(message: str, *args, **kwargs):
 
 def conditional_print_critical(message: str, *args, **kwargs):
     """
-    Print CRITICAL level message to console if enabled in logging.yml configuration.
+    Print CRITICAL level message to console if enabled via ENABLE_CONSOLE_PRINTS env variable.
 
     Args:
         message: The message to print (can contain format placeholders)

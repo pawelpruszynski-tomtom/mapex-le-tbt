@@ -2,8 +2,6 @@ version: 1
 
 disable_existing_loggers: False
 
-# Enable or disable console print statements alongside log.info
-enable_console_prints: True
 
 formatters:
   simple:
@@ -50,5 +48,5 @@ loggers:
     level: ERROR
 
 root:
-#  handlers: [rich, info_file_handler, error_file_handler]
-  handlers: [console]
+  handlers: [rich, info_file_handler, error_file_handler]
+#  handlers: [console]
