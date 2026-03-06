@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import logging
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_error
 
 log = logging.getLogger(__name__)
 
@@ -58,10 +58,12 @@ def call_wms(
                 return json.dumps(sdo_json)
         else:
             log.error(f"SDO: Exception {r.status_code} when calling SDO API with querystring={str(querystring)}")
+            conditional_print_error(f"SDO: Exception {r.status_code} when calling SDO API with querystring={str(querystring)}")
             return None
         
     except Exception as catched_exception:
         log.error("SDO: Timeout: %s", catched_exception)
+        conditional_print_error("SDO: Timeout: %s", catched_exception)
         return None
 
 

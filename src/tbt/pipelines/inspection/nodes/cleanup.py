@@ -4,7 +4,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ def clean_data_directories(tbt_options: dict) -> bool:
         dir_path = Path(dir_path_str)
         if not dir_path.exists():
             log.warning("Directory does not exist, skipping: %s", dir_path)
+            conditional_print_warning("Directory does not exist, skipping: %s", dir_path)
             continue
 
         removed_count = 0

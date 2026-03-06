@@ -12,7 +12,7 @@ import socket
 
 import logging
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_warning, conditional_print_error
 
 log = logging.getLogger(__name__)
 
@@ -426,6 +426,7 @@ class VMCheckUp:
                 raise Exception("Resource is still down.")
         except requests.exceptions.RequestException as e:
             log.error("Network exception Occured! ", e.response)
+            conditional_print_error("Network exception Occured! ", e.response)
             return False
     
 
@@ -448,6 +449,9 @@ class VMCheckUp:
                     log.error(
                         "Please check the stop-start Github workflow and re-run this script if required"
                     )
+                    conditional_print_error(
+                        "Please check the stop-start Github workflow and re-run this script if required"
+                    )
                     raise Exception("Resource non available")
             else:
                 if self._check_host_status(ip=ip, port=port):
@@ -455,6 +459,9 @@ class VMCheckUp:
                     conditional_print("Server is up, proceeding ahead with measurement job")
                 else:
                     log.error(
+                        "Please start the VM and run this workflow again"
+                    )
+                    conditional_print_error(
                         "Please start the VM and run this workflow again"
                     )
                     raise Exception("Resource non available")

@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
             conditional_print(result.stdout.strip())
         if result.stderr:
             log.warning(result.stderr.strip())
+            conditional_print_warning(result.stderr.strip())
 
         if result.returncode != 0:
             raise RuntimeError(
@@ -98,6 +99,7 @@ def initialize_sampling_data(init_done: bool, tbt_options: dict) -> bool:
                 conditional_print(result.stdout.strip())
             if result.stderr:
                 log.warning(result.stderr.strip())
+                conditional_print_warning(result.stderr.strip())
 
             if result.returncode != 0:
                 raise RuntimeError(

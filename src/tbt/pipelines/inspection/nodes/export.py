@@ -10,7 +10,7 @@ import pyspark.sql.types as T
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_error
 
 log = logging.getLogger(__name__)
 
@@ -191,6 +191,7 @@ def export_to_database(
 
     except Exception as e:
         log.error(f"Failed to export data to database: {str(e)}")
+        conditional_print_error(f"Failed to export data to database: {str(e)}")
         raise
 
 

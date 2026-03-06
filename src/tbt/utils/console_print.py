@@ -26,21 +26,15 @@ def _load_logging_config():
         return {"enable_console_prints": True}
 
 
-def conditional_print(message: str, *args, **kwargs):
+def _conditional_print_base(prefix: str, message: str, *args, **kwargs):
     """
-    Print message to console if enabled in logging.yml configuration.
-
-    This function checks the 'enable_console_prints' setting in conf/base/logging.yml
-    and prints the message only if it's set to True.
+    Base function for conditional printing with level prefix.
 
     Args:
+        prefix: Level prefix (e.g., "INFO", "WARNING", "ERROR")
         message: The message to print (can contain format placeholders)
         *args: Arguments to format the message
         **kwargs: Keyword arguments (currently unused, for future compatibility)
-
-    Example:
-        conditional_print("Processing %d items", 42)
-        conditional_print("Status: %s", "complete")
     """
     config = _load_logging_config()
 
@@ -55,5 +49,88 @@ def conditional_print(message: str, *args, **kwargs):
         else:
             formatted_message = message
 
-        print(formatted_message)
+        if prefix:
+            print(f"[{prefix}] {formatted_message}")
+        else:
+            print(formatted_message)
+
+
+def conditional_print(message: str, *args, **kwargs):
+    """
+    Print INFO level message to console if enabled in logging.yml configuration.
+
+    This function checks the 'enable_console_prints' setting in conf/base/logging.yml
+    and prints the message only if it's set to True.
+
+    Args:
+        message: The message to print (can contain format placeholders)
+        *args: Arguments to format the message
+        **kwargs: Keyword arguments (currently unused, for future compatibility)
+
+    Example:
+        conditional_print("Processing %d items", 42)
+        conditional_print("Status: %s", "complete")
+    """
+    _conditional_print_base("INFO", message, *args, **kwargs)
+
+
+def conditional_print_warning(message: str, *args, **kwargs):
+    """
+    Print WARNING level message to console if enabled in logging.yml configuration.
+
+    Args:
+        message: The message to print (can contain format placeholders)
+        *args: Arguments to format the message
+        **kwargs: Keyword arguments (currently unused, for future compatibility)
+
+    Example:
+        conditional_print_warning("Resource usage high: %d%%", 95)
+    """
+    _conditional_print_base("WARNING", message, *args, **kwargs)
+
+
+def conditional_print_error(message: str, *args, **kwargs):
+    """
+    Print ERROR level message to console if enabled in logging.yml configuration.
+
+    Args:
+        message: The message to print (can contain format placeholders)
+        *args: Arguments to format the message
+        **kwargs: Keyword arguments (currently unused, for future compatibility)
+
+    Example:
+        conditional_print_error("Failed to process: %s", error_msg)
+    """
+    _conditional_print_base("ERROR", message, *args, **kwargs)
+
+
+def conditional_print_debug(message: str, *args, **kwargs):
+    """
+    Print DEBUG level message to console if enabled in logging.yml configuration.
+
+    Args:
+        message: The message to print (can contain format placeholders)
+        *args: Arguments to format the message
+        **kwargs: Keyword arguments (currently unused, for future compatibility)
+
+    Example:
+        conditional_print_debug("Variable value: %s", debug_var)
+    """
+    _conditional_print_base("DEBUG", message, *args, **kwargs)
+
+
+def conditional_print_critical(message: str, *args, **kwargs):
+    """
+    Print CRITICAL level message to console if enabled in logging.yml configuration.
+
+    Args:
+        message: The message to print (can contain format placeholders)
+        *args: Arguments to format the message
+        **kwargs: Keyword arguments (currently unused, for future compatibility)
+
+    Example:
+        conditional_print_critical("System failure: %s", critical_error)
+    """
+    _conditional_print_base("CRITICAL", message, *args, **kwargs)
+
 

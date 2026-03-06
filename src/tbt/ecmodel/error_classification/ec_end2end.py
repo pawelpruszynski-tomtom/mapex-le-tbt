@@ -6,7 +6,7 @@ import logging
 # Import custom modules
 from .featurization import Featurizer
 from .prediction import MLModel
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ class ErrorClassification:
             conditional_print("HDR inspection detected. Using HDR model.")
         else:
             log.warning(f"The given sample_metric is not valid, defaulting to combined model. Please supply a valid sample_metric (Must be either 'TbT' or 'HDR', supplied sample_metric={self.sample_metric})")
-            self.ml_model_options = ml_model_options["combined"]       
+            conditional_print_warning(f"The given sample_metric is not valid, defaulting to combined model. Please supply a valid sample_metric (Must be either 'TbT' or 'HDR', supplied sample_metric={self.sample_metric})")
+            self.ml_model_options = ml_model_options["combined"]
 
         # Initialize MLModel
         self.ml_model = MLModel(self.ml_model_options)     

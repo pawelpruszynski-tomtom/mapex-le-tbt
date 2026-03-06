@@ -4,7 +4,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from tbt.utils.console_print import conditional_print
+from tbt.utils.console_print import conditional_print, conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ def initialize_inspection_data(cleanup_done: bool) -> bool:
             conditional_print(result.stdout.strip())
         if result.stderr:
             log.warning(result.stderr.strip())
+            conditional_print_warning(result.stderr.strip())
 
         if result.returncode != 0:
             raise RuntimeError(
