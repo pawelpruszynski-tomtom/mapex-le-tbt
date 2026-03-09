@@ -52,12 +52,12 @@ def export_to_database(
     """
     try:
         # Get database credentials from environment variables
-        db_host = os.getenv("DB_HOST")
-        db_port = os.getenv("DB_PORT", "5432")
-        db_name = os.getenv("DB_NAME")
-        db_user = os.getenv("DB_USER")
-        db_password = os.getenv("DB_PASSWORD")
-        db_schema = os.getenv("DB_SCHEMA", "public")
+        db_host = os.getenv("AO_HOST")
+        db_port = os.getenv("AO_PORT", "5432")
+        db_name = os.getenv("AO_NAME")
+        db_user = os.getenv("AO_USER")
+        db_password = os.getenv("AO_PASSWORD")
+        db_schema = os.getenv("AO_SCHEMA", "public")
 
         # Validate required credentials
         if not all([db_host, db_name, db_user, db_password]):
