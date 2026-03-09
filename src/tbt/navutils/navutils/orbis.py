@@ -220,7 +220,7 @@ class Orbis(BaseProvider):
         )
         try:
             try:
-                print(url)
+                # print(url)
                 request = requests.get(url, timeout=600)
             except requests.exceptions.SSLError:
                 # https://jira.tomtomgroup.com/browse/OMA-534 for KOR
