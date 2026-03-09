@@ -10,6 +10,7 @@ import logging
 # import FCD and SDO API call functions
 from .call_FCD_API import FCDFeaturizer
 from .call_SDO_API import wrapper_sdo
+from tbt.utils.console_print import conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -354,6 +355,7 @@ class Featurizer:
             cache = json.loads(row['sdo_api_response'])
         except:
             log.warning("SDO: Exception when loading json response, SDO features set to 0 for this critical section")
+            conditional_print_warning("SDO: Exception when loading json response, SDO features set to 0 for this critical section")
             cache = None
 
         # to keep counts by sign

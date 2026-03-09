@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: tbt-api
-    command: uvicorn tbt_api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "cd /app/src && python -m uvicorn tbt_api.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./src:/app/src
       - ./conf:/app/conf
@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: rq worker --url redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379} tbt-inspection
+    command: sh -c "cd /app/src && rq worker --url redis://${REDIS_HOST:-localhost}:${REDIS_PORT:-6379} tbt-inspection"
     volumes:
       - ./src:/app/src
       - ./conf:/app/conf

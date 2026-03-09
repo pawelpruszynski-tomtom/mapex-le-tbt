@@ -11,6 +11,9 @@ import requests
 import socket
 
 import logging
+
+from tbt.utils.console_print import conditional_print, conditional_print_warning, conditional_print_error
+
 log = logging.getLogger(__name__)
 
 
@@ -373,6 +376,7 @@ class VMCheckUp:
         """Function to check if host ip:port is up"""
         for i in range(self.RETRY):
             log.info(f"Retry Attempt {i + 1} : {ip}:{port}")
+            conditional_print(f"Retry Attempt {i + 1} : {ip}:{port}")
             if self._is_port_open(ip, port):
                 return True
             else:
@@ -386,11 +390,17 @@ class VMCheckUp:
 
         try:
             log.info(f"Checking if {ip_port} is UP and Running.")
+            conditional_print(f"Checking if {ip_port} is UP and Running.")
             if self._is_port_open(ip, port):
                 log.info(f"{ip_port} is UP and Running.")
+                conditional_print(f"{ip_port} is UP and Running.")
                 return True
 
             log.info(
+                f"Server {ip_port} is stopped. "
+                f"Calling VM starter function (stack_id={stack_id})."
+            )
+            conditional_print(
                 f"Server {ip_port} is stopped. "
                 f"Calling VM starter function (stack_id={stack_id})."
             )
@@ -403,14 +413,20 @@ class VMCheckUp:
                 log.info(
                     f"Successfully called the VM starter function (stack_id={stack_id})."
                 )
+                conditional_print(
+                    f"Successfully called the VM starter function (stack_id={stack_id})."
+                )
                 log.info(f"Waitting for VM to start.")
+                conditional_print(f"Waitting for VM to start.")
                 time.sleep(120)
                 if self._check_host_status(ip, port):
                     log.info(f"{ip_port} is UP and Running.")
+                    conditional_print(f"{ip_port} is UP and Running.")
                     return True
                 raise Exception("Resource is still down.")
         except requests.exceptions.RequestException as e:
             log.error("Network exception Occured! ", e.response)
+            conditional_print_error("Network exception Occured! ", e.response)
             return False
     
 
@@ -428,16 +444,24 @@ class VMCheckUp:
                 }
                 if self.make_available(**params):
                     log.info("Server is up, proceeding ahead with measurement job")
+                    conditional_print("Server is up, proceeding ahead with measurement job")
                 else:
                     log.error(
+                        "Please check the stop-start Github workflow and re-run this script if required"
+                    )
+                    conditional_print_error(
                         "Please check the stop-start Github workflow and re-run this script if required"
                     )
                     raise Exception("Resource non available")
             else:
                 if self._check_host_status(ip=ip, port=port):
                     log.info("Server is up, proceeding ahead with measurement job")
+                    conditional_print("Server is up, proceeding ahead with measurement job")
                 else:
                     log.error(
+                        "Please start the VM and run this workflow again"
+                    )
+                    conditional_print_error(
                         "Please start the VM and run this workflow again"
                     )
                     raise Exception("Resource non available")

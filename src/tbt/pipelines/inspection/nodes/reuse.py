@@ -10,6 +10,7 @@ import shapely.wkt
 from pyspark.sql.functions import col, expr, when
 
 import tbt.navutils.common.decorators as decorators
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ def reuse_static_routes(
     ignore_previous_inspections = tbt_options["ignore_previous_inspections"]
     if ignore_previous_inspections:
         log.info("Ignoring previous inspections...")
+        conditional_print("Ignoring previous inspections...")
         tbt_inspection_routes = tbt_inspection_routes.limit(0)
         tbt_inspection_critical_sections = tbt_inspection_critical_sections.limit(0)
         tbt_critical_sections_with_mcp_feedback = (
@@ -49,6 +51,7 @@ def reuse_static_routes(
         )
 
     log.info("Trying to reuse %i routes", provider_routes.count())
+    conditional_print("Trying to reuse %i routes", provider_routes.count())
 
     # Deduplicate critical_sections_with_mcp_feedback
     tbt_critical_sections_with_mcp_feedback = (
@@ -142,7 +145,12 @@ def reuse_static_routes(
     provider_routes_unknown = provider_routes_.filter("rac_state is null")
 
     log.info("%i routes are new", provider_routes_unknown.count())
+    conditional_print("%i routes are new", provider_routes_unknown.count())
     log.info(
+        "%i routes are known. Retrieving critical section info...",
+        provider_routes_known.count(),
+    )
+    conditional_print(
         "%i routes are known. Retrieving critical section info...",
         provider_routes_known.count(),
     )
@@ -168,6 +176,10 @@ def reuse_static_routes(
         .cache()
     )
     log.info(
+        "Found %i critical sections already evaluated",
+        inspection_critical_sections_known.count(),
+    )
+    conditional_print(
         "Found %i critical sections already evaluated",
         inspection_critical_sections_known.count(),
     )

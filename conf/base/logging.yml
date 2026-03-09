@@ -2,6 +2,7 @@ version: 1
 
 disable_existing_loggers: False
 
+
 formatters:
   simple:
     format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -47,5 +48,5 @@ loggers:
     level: ERROR
 
 root:
-#  handlers: [rich, info_file_handler, error_file_handler]
-  handlers: [console]
+  handlers: [rich, info_file_handler, error_file_handler]
+#  handlers: [console]

@@ -11,6 +11,7 @@ from pyspark.sql.functions import lit
 import tbt.navutils.common.decorators as decorators
 from tbt.ecmodel.error_classification.ec_end2end import ErrorClassification
 from tbt.pipelines.inspection.domain.geometry import convert_to_linestring, get_length
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -207,6 +208,7 @@ def get_fcd_state(
 
     total_time = time() - total_time
     log.info("FCD state node finished")
+    conditional_print("FCD state node finished")
 
     return run_id, tbt_critical_sections_with_fcd_state, ec_model_log_table, total_time
 
@@ -220,6 +222,10 @@ def evaluate_with_ml_model(
 ):
     """Internal: call the EC model for critical sections."""
     log.info(
+        "Calling the EC Model for %i critical sections (using code in submodule ecmodel)",
+        tbt_new_critical_sections.count(),
+    )
+    conditional_print(
         "Calling the EC Model for %i critical sections (using code in submodule ecmodel)",
         tbt_new_critical_sections.count(),
     )

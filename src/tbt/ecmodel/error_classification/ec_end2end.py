@@ -6,6 +6,7 @@ import logging
 # Import custom modules
 from .featurization import Featurizer
 from .prediction import MLModel
+from tbt.utils.console_print import conditional_print, conditional_print_warning
 
 log = logging.getLogger(__name__)
 
@@ -32,12 +33,15 @@ class ErrorClassification:
         if self.sample_metric == "TbT":
             self.ml_model_options = ml_model_options["tbt"]
             log.info("TbT inspection detected. Using TbT model.")
+            conditional_print("TbT inspection detected. Using TbT model.")
         elif self.sample_metric == "HDR":
             self.ml_model_options = ml_model_options["hdr"]
             log.info("HDR inspection detected. Using HDR model.")
+            conditional_print("HDR inspection detected. Using HDR model.")
         else:
             log.warning(f"The given sample_metric is not valid, defaulting to combined model. Please supply a valid sample_metric (Must be either 'TbT' or 'HDR', supplied sample_metric={self.sample_metric})")
-            self.ml_model_options = ml_model_options["combined"]       
+            conditional_print_warning(f"The given sample_metric is not valid, defaulting to combined model. Please supply a valid sample_metric (Must be either 'TbT' or 'HDR', supplied sample_metric={self.sample_metric})")
+            self.ml_model_options = ml_model_options["combined"]
 
         # Initialize MLModel
         self.ml_model = MLModel(self.ml_model_options)     
@@ -229,18 +233,22 @@ class ErrorClassification:
 
         # featurizing
         log.info("Featurizing...")
+        conditional_print("Featurizing...")
         featurized_df = self.featurize()
         fcd_elapsed_time = time.time() - start_time
         minutes, seconds = divmod(fcd_elapsed_time, 60)
         log.info(f"Finished featurization of {nr_critical_section} critical sections in {int(minutes)} minutes and {seconds:.2f} seconds.")
+        conditional_print(f"Finished featurization of {nr_critical_section} critical sections in {int(minutes)} minutes and {seconds:.2f} seconds.")
 
         # predict
         log.info("Predicting...")
+        conditional_print("Predicting...")
         predictions = self.predict_on_df(featurized_df)
 
         # create log table
         ec_model_log_table = self.create_log_table(featurized_df, predictions)
         log.info(f"Finished predicting and logging {nr_critical_section} critical sections with model: model_run_id={ec_model_log_table['model_run_id'][0]}")
+        conditional_print(f"Finished predicting and logging {nr_critical_section} critical sections with model: model_run_id={ec_model_log_table['model_run_id'][0]}")
 
         # extract only predictions to return
         predictions = pd.Series(predictions["error_label"])
@@ -253,8 +261,10 @@ class ErrorClassification:
         ec_model_log_table["time_per_critical_section"] = time_per_critical_section
 
         log.info(f"Finished e2e error classification of {nr_critical_section} critical sections in {int(minutes)} minutes and {seconds:.2f} seconds.")
+        conditional_print(f"Finished e2e error classification of {nr_critical_section} critical sections in {int(minutes)} minutes and {seconds:.2f} seconds.")
         log.info(f"Time per critical section: {time_per_critical_section:.2f} seconds.")
+        conditional_print(f"Time per critical section: {time_per_critical_section:.2f} seconds.")
 
-        # return predictions and the log table
+        return predictions, ec_model_log_table
         return predictions, ec_model_log_table
 

@@ -8,6 +8,7 @@ import requests
 from .base_provider import BaseProvider, RouteOptions, _is_flat_list
 from .enum_types import AvoidOptions, RouteType, TravelMode
 from .route import Route
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +115,9 @@ class MMI(BaseProvider):
                 return Route([], self.name, 0)
 
             log.info(f"URL: {url}")
+            conditional_print(f"URL: {url}")
             log.info(f"Response from MMI: {response.content}")
+            conditional_print(f"Response from MMI: {response.content}")
 
             routes_info = self.__parse_response(response)
             if _is_flat_list(routes_info):

@@ -10,6 +10,8 @@ import pyspark.sql.types as T
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
+from tbt.utils.console_print import conditional_print, conditional_print_error
+
 log = logging.getLogger(__name__)
 
 # Load environment variables from .env file
@@ -73,11 +75,13 @@ def export_to_database(
         engine = create_engine(connection_string)
 
         log.info(f"Connecting to database: {db_host}:{db_port}/{db_name}")
+        conditional_print(f"Connecting to database: {db_host}:{db_port}/{db_name}")
 
         # Export each DataFrame to the database
         # Using if_exists='append' to add new data without dropping existing tables
 
         log.info("Exporting inspection_routes to database...")
+        conditional_print("Exporting inspection_routes to database...")
         inspection_routes.to_sql(
             name="inspection_routes",
             con=engine,
@@ -89,6 +93,7 @@ def export_to_database(
         )
 
         log.info("Exporting inspection_critical_sections to database...")
+        conditional_print("Exporting inspection_critical_sections to database...")
         inspection_critical_sections.to_sql(
             name="inspection_critical_sections",
             con=engine,
@@ -100,6 +105,7 @@ def export_to_database(
         )
 
         log.info("Exporting critical_sections_with_mcp_feedback to database...")
+        conditional_print("Exporting critical_sections_with_mcp_feedback to database...")
         critical_sections_with_mcp_feedback.to_sql(
             name="critical_sections_with_mcp_feedback",
             con=engine,
@@ -112,6 +118,7 @@ def export_to_database(
 
         # Convert error_logs to leads format (JSONB)
         log.info("Converting error_logs to leads format...")
+        conditional_print("Converting error_logs to leads format...")
         pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
 
         # Prepare leads data
@@ -140,6 +147,7 @@ def export_to_database(
         leads_df = pd.DataFrame(leads_data)
 
         log.info(f"Exporting {len(leads_df)} error_logs to leads table...")
+        conditional_print(f"Exporting {len(leads_df)} error_logs to leads table...")
         if not leads_df.empty:
             leads_df.to_sql(
                 name="leads",
@@ -152,8 +160,10 @@ def export_to_database(
             )
         else:
             log.info("No error logs to export to leads table")
+            conditional_print("No error logs to export to leads table")
 
         log.info("Exporting inspection_metadata to database...")
+        conditional_print("Exporting inspection_metadata to database...")
         inspection_metadata.to_sql(
             name="inspection_metadata",
             con=engine,
@@ -165,6 +175,7 @@ def export_to_database(
         )
 
         log.info("Successfully exported all data to database")
+        conditional_print("Successfully exported all data to database")
 
         # Close the connection
         engine.dispose()
@@ -180,6 +191,7 @@ def export_to_database(
 
     except Exception as e:
         log.error(f"Failed to export data to database: {str(e)}")
+        conditional_print_error(f"Failed to export data to database: {str(e)}")
         raise
 
 

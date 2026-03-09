@@ -9,6 +9,7 @@ from pyspark.sql.functions import col, lit
 
 import tbt.navutils.common.decorators as decorators
 from tbt.pipelines.inspection.domain.metadata import build_inspection_metadata_record
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +56,11 @@ def merge_inspection_data(
         inspection_routes.count(),
         routes.count(),
     )
+    conditional_print(
+        "Aggregated %i inspection routes (%i new)",
+        inspection_routes.count(),
+        routes.count(),
+    )
 
     # --- Inspection critical sections ---
     inspection_critical_sections = (
@@ -77,6 +83,11 @@ def merge_inspection_data(
     ).cache()
 
     log.info(
+        "Aggregated %i critical sections (%i new)",
+        inspection_critical_sections.count(),
+        tbt_critical_sections_with_fcd_state.count(),
+    )
+    conditional_print(
         "Aggregated %i critical sections (%i new)",
         inspection_critical_sections.count(),
         tbt_critical_sections_with_fcd_state.count(),
@@ -115,6 +126,7 @@ def merge_inspection_data(
         .cache()
     )
     log.info("Generated %i mcp tasks", error_logs.count())
+    conditional_print("Generated %i mcp tasks", error_logs.count())
 
     # --- Inspection metadata ---
     country = inspection_routes.select("country").take(1)[0][0]

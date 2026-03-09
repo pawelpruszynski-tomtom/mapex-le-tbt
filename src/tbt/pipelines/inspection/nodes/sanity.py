@@ -10,6 +10,7 @@ from pyspark.sql.functions import col
 
 import tbt.navutils.common.decorators as decorators
 from tbt.navutils.navutils.sanity_checks import SanityCheckInspectionTBT
+from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
 
@@ -111,6 +112,9 @@ def raise_sanity_error(
         and export_to_database_ok
     ):
         log.info(
+            "Result of sanity checks: Failed. Please check the output of this run carefully"
+        )
+        conditional_print(
             "Result of sanity checks: Failed. Please check the output of this run carefully"
         )
 
