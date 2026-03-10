@@ -52,12 +52,12 @@ def export_to_database(
     """
     try:
         # Get database credentials from environment variables
-        db_host = os.getenv("DB_HOST")
-        db_port = os.getenv("DB_PORT", "5432")
-        db_name = os.getenv("DB_NAME")
-        db_user = os.getenv("DB_USER")
-        db_password = os.getenv("DB_PASSWORD")
-        db_schema = os.getenv("DB_SCHEMA", "public")
+        db_host = os.getenv("AO_HOST")
+        db_port = os.getenv("AO_PORT", "5432")
+        db_name = os.getenv("AO_DBNAME")
+        db_user = os.getenv("AO_USER")
+        db_password = os.getenv("AO_PASSWORD")
+        db_schema = os.getenv("AO_SCHEMA", "public")
 
         # Validate required credentials
         if not all([db_host, db_name, db_user, db_password]):
@@ -116,41 +116,35 @@ def export_to_database(
             chunksize=1000,
         )
 
-        # Convert error_logs to leads format (JSONB)
-        log.info("Converting error_logs to leads format...")
-        conditional_print("Converting error_logs to leads format...")
+        # Export error_logs to errorlogs table
+        log.info("Converting error_logs to errorlogs format...")
+        conditional_print("Converting error_logs to errorlogs format...")
         pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
 
-        # Prepare leads data
-        import json
-        leads_data = []
+        # Prepare errorlogs data — map to errorlogs table schema
+        errorlogs_data = []
         for _, row in error_logs.iterrows():
-            lead_data = {
-                "run_id": row.get("run_id"),
+            errorlogs_data.append({
                 "case_id": row.get("case_id"),
                 "route_id": row.get("route_id"),
-                "stretch": row.get("stretch"),
-                "provider_route": row.get("provider_route"),
-                "competitor_route": row.get("competitor_route"),
                 "country": row.get("country"),
                 "provider": row.get("provider"),
-                "competitor": row.get("competitor"),
                 "product": row.get("product"),
-            }
-
-            leads_data.append({
+                "source_type": "tbt",
+                "origin": row.get("origin"),
+                "destination": row.get("destination"),
+                "stretch": row.get("stretch"),
+                "run_id": row.get("run_id"),
                 "pipeline_id": pipeline_id,
-                "source": "tbt",
-                "lead_data": json.dumps(lead_data),
             })
 
-        leads_df = pd.DataFrame(leads_data)
+        errorlogs_df = pd.DataFrame(errorlogs_data)
 
-        log.info(f"Exporting {len(leads_df)} error_logs to leads table...")
-        conditional_print(f"Exporting {len(leads_df)} error_logs to leads table...")
-        if not leads_df.empty:
-            leads_df.to_sql(
-                name="leads",
+        log.info(f"Exporting {len(errorlogs_df)} error_logs to errorlogs table...")
+        conditional_print(f"Exporting {len(errorlogs_df)} error_logs to errorlogs table...")
+        if not errorlogs_df.empty:
+            errorlogs_df.to_sql(
+                name="errorlogs",
                 con=engine,
                 schema=db_schema,
                 if_exists="append",
@@ -159,8 +153,8 @@ def export_to_database(
                 chunksize=1000,
             )
         else:
-            log.info("No error logs to export to leads table")
-            conditional_print("No error logs to export to leads table")
+            log.info("No error logs to export to errorlogs table")
+            conditional_print("No error logs to export to errorlogs table")
 
         log.info("Exporting inspection_metadata to database...")
         conditional_print("Exporting inspection_metadata to database...")
