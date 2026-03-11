@@ -96,6 +96,24 @@ def export_to_database(
         log.info(f"Connecting to database: {db_host}:{db_port}/{db_name}")
         conditional_print(f"Connecting to database: {db_host}:{db_port}/{db_name}")
 
+        # -----------------------------------------------------------------
+        # Idempotency: delete any previously written rows for this
+        # pipeline_id BEFORE inserting, so that a Kedro re-run (triggered
+        # by a Celery retry / acks_late redelivery) does not produce
+        # duplicate records in the database.
+        # -----------------------------------------------------------------
+        pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
+        log.info("Removing existing rows for pipeline_id=%s to ensure idempotent write...", pipeline_id)
+        conditional_print(f"Removing existing rows for pipeline_id={pipeline_id} (idempotent write)...")
+        with engine.begin() as conn:
+            for table in (
+                "errorlogs",
+            ):
+                conn.execute(
+                    text(f"DELETE FROM {db_schema}.{table} WHERE pipeline_id = :pid"),
+                    {"pid": pipeline_id},
+                )
+
         # Export each DataFrame to the database
         # Using if_exists='append' to add new data without dropping existing tables
 
@@ -138,7 +156,6 @@ def export_to_database(
         # Export error_logs to errorlogs table
         log.info("Converting error_logs to errorlogs format...")
         conditional_print("Converting error_logs to errorlogs format...")
-        pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
 
         # Fetch 'project' from pipelines table (internal DB) to use as location_label
         location_label = None
