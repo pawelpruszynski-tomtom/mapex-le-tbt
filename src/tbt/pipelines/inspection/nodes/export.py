@@ -8,7 +8,7 @@ import pandas as pd
 import pyspark.sql
 import pyspark.sql.types as T
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 from tbt.utils.console_print import conditional_print, conditional_print_error
 
@@ -16,6 +16,25 @@ log = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
+
+
+def _wkt_point_to_lat_lon(wkt_point: str) -> str:
+    """Convert WKT POINT(lon lat) to 'lat, lon' string format.
+
+    Args:
+        wkt_point: WKT string like 'POINT(9.27566 45.43851)'
+
+    Returns:
+        String like '45.43851, 9.27566', or original value if parsing fails.
+    """
+    if not wkt_point or not isinstance(wkt_point, str):
+        return wkt_point
+    try:
+        coords = wkt_point.strip().replace("POINT(", "").replace(")", "")
+        lon, lat = coords.split()
+        return f"{float(lat)}, {float(lon)}"
+    except Exception:
+        return wkt_point
 
 
 def export_to_database(
@@ -121,6 +140,31 @@ def export_to_database(
         conditional_print("Converting error_logs to errorlogs format...")
         pipeline_id = tbt_options.get("sample_id")  # sample_id = pipeline_id in our system
 
+        # Fetch 'project' from pipelines table (internal DB) to use as location_label
+        location_label = None
+        try:
+            internal_connection_string = (
+                f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+                f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME')}"
+            )
+            internal_engine = create_engine(internal_connection_string)
+            internal_schema = os.getenv("DB_SCHEMA", "public")
+            with internal_engine.connect() as conn:
+                result = conn.execute(
+                    text(f"SELECT project FROM {internal_schema}.pipelines WHERE id = :pipeline_id"),
+                    {"pipeline_id": pipeline_id},
+                ).fetchone()
+                if result:
+                    location_label = result[0]
+                    log.info(f"Fetched location_label (project): {location_label}")
+                    conditional_print(f"Fetched location_label (project): {location_label}")
+                else:
+                    log.warning(f"No pipeline found for pipeline_id: {pipeline_id}")
+                    conditional_print(f"No pipeline found for pipeline_id: {pipeline_id}")
+            internal_engine.dispose()
+        except Exception as e:
+            log.warning(f"Could not fetch project from pipelines table: {e}")
+
         # Prepare errorlogs data — map to errorlogs table schema
         errorlogs_data = []
         for _, row in error_logs.iterrows():
@@ -131,11 +175,12 @@ def export_to_database(
                 "provider": row.get("provider"),
                 "product": row.get("product"),
                 "source_type": "tbt",
-                "origin": row.get("origin"),
-                "destination": row.get("destination"),
+                "origin": _wkt_point_to_lat_lon(row.get("origin")),
+                "destination": _wkt_point_to_lat_lon(row.get("destination")),
                 "stretch": row.get("stretch"),
                 "run_id": row.get("run_id"),
                 "pipeline_id": pipeline_id,
+                "location_label": location_label,
             })
 
         errorlogs_df = pd.DataFrame(errorlogs_data)
