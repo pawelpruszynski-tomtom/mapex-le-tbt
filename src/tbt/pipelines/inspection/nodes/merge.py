@@ -118,6 +118,7 @@ def merge_inspection_data(
                 "run_id", "route_id",
                 "provider_route", "competitor_route",
                 "country", "provider", "competitor",
+                "origin", "destination",
             ),
             on=["run_id", "route_id"],
             how="left",

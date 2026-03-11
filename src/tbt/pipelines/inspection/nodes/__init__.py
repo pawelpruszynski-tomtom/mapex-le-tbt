@@ -9,7 +9,7 @@ continue to work unchanged.
 from .cleanup import clean_data_directories
 from .initialize import initialize_inspection_data
 from .initialize_sampling import initialize_sampling_data
-from .duplicates import check_duplicates
+from .duplicates import check_duplicates, deduplicate_stretch
 from .routing import get_provider_routes, get_competitor_routes
 from .reuse import reuse_static_routes
 from .rac import get_rac_state
@@ -23,6 +23,7 @@ __all__ = [
     "initialize_inspection_data",
     "initialize_sampling_data",
     "check_duplicates",
+    "deduplicate_stretch",
     "get_provider_routes",
     "get_competitor_routes",
     "reuse_static_routes",
