@@ -5,7 +5,6 @@ Also contains: deduplicate_stretch — post-inspection deduplication of the stre
 import logging
 import re
 
-import numpy as np
 import pandas as pd
 from shapely.wkt import loads
 
