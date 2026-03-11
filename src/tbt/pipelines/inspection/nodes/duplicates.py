@@ -3,12 +3,34 @@ Also contains: deduplicate_stretch — post-inspection deduplication of the stre
 """
 
 import logging
+import re
 
 import pandas as pd
 
 from tbt.utils.console_print import conditional_print
 
 log = logging.getLogger(__name__)
+
+
+def round_coordinates(stretch_str: str) -> str:
+    """Round coordinates in a WKT LINESTRING to 2 decimal places.
+
+    :param stretch_str: WKT LINESTRING string, e.g. ``'LINESTRING (1.23456 4.56789, ...)'``.
+    :return: WKT LINESTRING with coordinates rounded to 2 decimal places.
+    """
+    match = re.search(r'LINESTRING \((.*)\)', stretch_str)
+    if not match:
+        return stretch_str
+
+    coords_str = match.group(1)
+    coord_pairs = coords_str.split(', ')
+
+    rounded_coords = []
+    for pair in coord_pairs:
+        lon, lat = map(float, pair.split())
+        rounded_coords.append(f"{round(lon, 2)} {round(lat, 2)}")
+
+    return f"LINESTRING ({', '.join(rounded_coords)})"
 
 
 def deduplicate_stretch(
@@ -19,10 +41,19 @@ def deduplicate_stretch(
     inspection_metadata: pd.DataFrame,
     tbt_options: dict,
 ) -> tuple:
-    """Deduplicate rows based on the ``stretch`` column.
+    """Deduplicate rows based on the ``stretch`` column and then on ``stretch_rounded``.
 
-    Applies ``DataFrame.drop_duplicates(subset=['stretch'])`` to DataFrames
-    that contain the ``stretch`` column:
+    Step 1 — exact deduplication:
+        Applies ``DataFrame.drop_duplicates(subset=['stretch'])`` to every
+        DataFrame that contains the ``stretch`` column.
+
+    Step 2 — rounded-coordinates deduplication:
+        Creates a temporary ``stretch_rounded`` column by applying
+        :func:`round_coordinates` (coordinates rounded to 2 decimal places)
+        and calls ``drop_duplicates(subset=['stretch_rounded'])``.
+        The temporary column is dropped afterwards.
+
+    Both steps are applied to:
     - ``inspection_critical_sections``
     - ``critical_sections_with_mcp_feedback``
     - ``error_logs``
@@ -42,12 +73,24 @@ def deduplicate_stretch(
         if "stretch" not in df.columns:
             log.warning("Column 'stretch' not found in '%s' — skipping deduplication.", name)
             return df
+
+        # Step 1: exact deduplication on 'stretch'
         before = len(df)
         df = df.drop_duplicates(subset=["stretch"])
         removed = before - len(df)
-        log.info("Deduplication '%s': removed %d duplicate stretch rows (%d → %d).", name, removed, before, len(df))
-        conditional_print(f"Deduplication '{name}': removed {removed} duplicate stretch rows ({before} → {len(df)}).")
-        return df
+        log.info("Deduplication '%s' [exact]: removed %d rows (%d → %d).", name, removed, before, len(df))
+        conditional_print(f"Deduplication '{name}' [exact]: removed {removed} rows ({before} → {len(df)}).")
+
+        # Step 2: rounded-coordinates deduplication on 'stretch_rounded'
+        before = len(df)
+        df["stretch_rounded"] = df["stretch"].apply(round_coordinates)
+        df = df.drop_duplicates(subset=["stretch_rounded"])
+        df = df.drop(columns=["stretch_rounded"])
+        removed = before - len(df)
+        log.info("Deduplication '%s' [rounded]: removed %d rows (%d → %d).", name, removed, before, len(df))
+        conditional_print(f"Deduplication '{name}' [rounded]: removed {removed} rows ({before} → {len(df)}).")
+
+        return df.reset_index(drop=True)
 
     inspection_critical_sections = _drop_duplicates_stretch(
         inspection_critical_sections, "inspection_critical_sections"
