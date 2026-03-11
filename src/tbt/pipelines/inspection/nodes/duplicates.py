@@ -19,36 +19,43 @@ def deduplicate_stretch(
     inspection_metadata: pd.DataFrame,
     tbt_options: dict,
 ) -> tuple:
-    """Deduplicate rows based on the ``stretch`` column using multiple strategies.
+    """Deduplicate rows based on the ``stretch`` column.
 
-    Strategies are applied in order and are controlled by ``tbt_options["deduplication"]``:
-      - ``"first"``       — keep the first occurrence of each stretch value (default).
-      - ``"last"``        — keep the last occurrence.
-      - ``"min_length"``  — keep the row with the minimum ``provider_route_length`` per stretch.
-      - ``"max_length"``  — keep the row with the maximum ``provider_route_length`` per stretch.
+    Applies ``DataFrame.drop_duplicates(subset=['stretch'])`` to DataFrames
+    that contain the ``stretch`` column:
+    - ``inspection_critical_sections``
+    - ``critical_sections_with_mcp_feedback``
+    - ``error_logs``
 
-    The active strategy is read from ``tbt_options.get("deduplication", {}).get("strategy", "first")``.
+    DataFrames without the ``stretch`` column (``inspection_routes``,
+    ``inspection_metadata``) are passed through unchanged.
 
     :param inspection_routes: Routes DataFrame.
     :param inspection_critical_sections: Critical sections DataFrame.
     :param critical_sections_with_mcp_feedback: Critical sections with MCP feedback DataFrame.
     :param error_logs: Error logs DataFrame.
     :param inspection_metadata: Inspection metadata DataFrame.
-    :param tbt_options: Pipeline options dict.
-    :return: Tuple of deduplicated DataFrames in the same order as the inputs (without tbt_options).
+    :param tbt_options: Pipeline options dict (unused; kept for pipeline signature consistency).
+    :return: Tuple of (deduplicated) DataFrames in the same order as the inputs (without tbt_options).
     """
-    dedup_cfg = tbt_options.get("deduplication", {})
-    strategy = dedup_cfg.get("strategy", "first")
+    def _drop_duplicates_stretch(df: pd.DataFrame, name: str) -> pd.DataFrame:
+        if "stretch" not in df.columns:
+            log.warning("Column 'stretch' not found in '%s' — skipping deduplication.", name)
+            return df
+        before = len(df)
+        df = df.drop_duplicates(subset=["stretch"])
+        removed = before - len(df)
+        log.info("Deduplication '%s': removed %d duplicate stretch rows (%d → %d).", name, removed, before, len(df))
+        conditional_print(f"Deduplication '{name}': removed {removed} duplicate stretch rows ({before} → {len(df)}).")
+        return df
 
-    log.info("Running stretch deduplication with strategy='%s'", strategy)
-    conditional_print(f"Deduplication: strategy='{strategy}'")
-
-    # NOTE: Replace the bodies of the helpers below with the functions you provide.
-    inspection_routes = _dedup_routes(inspection_routes, strategy)
-    inspection_critical_sections = _dedup_by_stretch(inspection_critical_sections, strategy)
-    critical_sections_with_mcp_feedback = _dedup_by_stretch(
-        critical_sections_with_mcp_feedback, strategy
+    inspection_critical_sections = _drop_duplicates_stretch(
+        inspection_critical_sections, "inspection_critical_sections"
     )
+    critical_sections_with_mcp_feedback = _drop_duplicates_stretch(
+        critical_sections_with_mcp_feedback, "critical_sections_with_mcp_feedback"
+    )
+    error_logs = _drop_duplicates_stretch(error_logs, "error_logs")
 
     return (
         inspection_routes,
@@ -58,44 +65,6 @@ def deduplicate_stretch(
         inspection_metadata,
     )
 
-
-# ---------------------------------------------------------------------------
-# Internal helpers — replace these bodies with the functions you provide
-# ---------------------------------------------------------------------------
-
-def _dedup_routes(df: pd.DataFrame, strategy: str) -> pd.DataFrame:
-    """Deduplicate *inspection_routes* on the ``stretch`` column.
-
-    This is a placeholder — replace with the real implementation.
-    """
-    if "stretch" not in df.columns:
-        log.warning("Column 'stretch' not found in inspection_routes — skipping deduplication.")
-        return df
-
-    if strategy in ("first", "last"):
-        return df.drop_duplicates(subset=["stretch"], keep=strategy)
-    elif strategy == "min_length":
-        idx = df.groupby("stretch")["provider_route_length"].idxmin()
-        return df.loc[idx].reset_index(drop=True)
-    elif strategy == "max_length":
-        idx = df.groupby("stretch")["provider_route_length"].idxmax()
-        return df.loc[idx].reset_index(drop=True)
-    else:
-        log.warning("Unknown deduplication strategy '%s' — skipping.", strategy)
-        return df
-
-
-def _dedup_by_stretch(df: pd.DataFrame, strategy: str) -> pd.DataFrame:
-    """Deduplicate a DataFrame on the ``stretch`` column (keep first/last).
-
-    This is a placeholder — replace with the real implementation.
-    """
-    if "stretch" not in df.columns:
-        log.warning("Column 'stretch' not found — skipping deduplication for this DataFrame.")
-        return df
-
-    keep = strategy if strategy in ("first", "last") else "first"
-    return df.drop_duplicates(subset=["stretch"], keep=keep).reset_index(drop=True)
 
 
 def check_duplicates(tbt_options: dict, inspection_metadata: pd.DataFrame) -> bool:
