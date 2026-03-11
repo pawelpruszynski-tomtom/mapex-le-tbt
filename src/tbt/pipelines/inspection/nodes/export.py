@@ -159,6 +159,7 @@ def export_to_database(
 
         # Fetch 'project' from pipelines table (internal DB) to use as location_label
         location_label = None
+        internal_engine = None
         try:
             internal_connection_string = (
                 f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
@@ -178,9 +179,11 @@ def export_to_database(
                 else:
                     log.warning(f"No pipeline found for pipeline_id: {pipeline_id}")
                     conditional_print(f"No pipeline found for pipeline_id: {pipeline_id}")
-            internal_engine.dispose()
         except Exception as e:
             log.warning(f"Could not fetch project from pipelines table: {e}")
+        finally:
+            if internal_engine is not None:
+                internal_engine.dispose()
 
         # Prepare errorlogs data — map to errorlogs table schema
         errorlogs_data = []
