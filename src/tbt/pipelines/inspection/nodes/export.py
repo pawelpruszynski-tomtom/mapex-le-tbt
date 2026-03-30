@@ -110,7 +110,7 @@ def export_to_database(
                 "errorlogs",
             ):
                 conn.execute(
-                    text(f"DELETE FROM {db_schema}.{table} WHERE pipeline_id = :pid"),
+                    text(f"DELETE FROM {db_schema}.{table} WHERE pipeline_id = :pid AND source_type = 'tbt'"),
                     {"pid": pipeline_id},
                 )
 
