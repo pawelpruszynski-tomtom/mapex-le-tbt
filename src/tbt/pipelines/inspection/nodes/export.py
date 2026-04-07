@@ -157,7 +157,8 @@ def export_to_database(
         log.info("Converting error_logs to errorlogs format...")
         conditional_print("Converting error_logs to errorlogs format...")
 
-        # Fetch 'project' from pipelines table (internal DB) to use as location_label
+        # Fetch 'project' and 'label' from pipelines table (internal DB)
+        project_value = None
         location_label = None
         internal_engine = None
         try:
@@ -169,18 +170,19 @@ def export_to_database(
             internal_schema = os.getenv("DB_SCHEMA", "public")
             with internal_engine.connect() as conn:
                 result = conn.execute(
-                    text(f"SELECT project FROM {internal_schema}.pipelines WHERE id = :pipeline_id"),
+                    text(f"SELECT project, label FROM {internal_schema}.pipelines WHERE id = :pipeline_id"),
                     {"pipeline_id": pipeline_id},
                 ).fetchone()
                 if result:
-                    location_label = result[0]
-                    log.info(f"Fetched location_label (project): {location_label}")
-                    conditional_print(f"Fetched location_label (project): {location_label}")
+                    project_value = result[0]
+                    location_label = result[1]
+                    log.info(f"Fetched project: {project_value}, location_label (label): {location_label}")
+                    conditional_print(f"Fetched project: {project_value}, location_label (label): {location_label}")
                 else:
                     log.warning(f"No pipeline found for pipeline_id: {pipeline_id}")
                     conditional_print(f"No pipeline found for pipeline_id: {pipeline_id}")
         except Exception as e:
-            log.warning(f"Could not fetch project from pipelines table: {e}")
+            log.warning(f"Could not fetch project/label from pipelines table: {e}")
         finally:
             if internal_engine is not None:
                 internal_engine.dispose()
@@ -200,6 +202,7 @@ def export_to_database(
                 "stretch": row.get("stretch"),
                 "run_id": row.get("run_id"),
                 "pipeline_id": pipeline_id,
+                "project": project_value,
                 "location_label": location_label,
             })
 
