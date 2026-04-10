@@ -86,8 +86,9 @@ def export_to_database(
             )
 
         # Create database connection string
+        db_sslmode = os.getenv("DB_SSLMODE", "require")
         connection_string = (
-            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?sslmode={db_sslmode}"
         )
 
         # Create SQLAlchemy engine
@@ -157,7 +158,7 @@ def export_to_database(
         log.info("Converting error_logs to errorlogs format...")
         conditional_print("Converting error_logs to errorlogs format...")
 
-        # Fetch 'project' and 'label' from pipelines table (internal DB)
+        # Fetch 'project' and 'label' from pipelines table
         project_value = None
         location_label = None
         internal_engine = None
@@ -165,6 +166,7 @@ def export_to_database(
             internal_connection_string = (
                 f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
                 f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME')}"
+                f"?sslmode={os.getenv('DB_SSLMODE', 'require')}"
             )
             internal_engine = create_engine(internal_connection_string)
             internal_schema = os.getenv("DB_SCHEMA", "public")

@@ -26,6 +26,7 @@ DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_SCHEMA = os.getenv("DB_SCHEMA", "public")
+DB_SSLMODE = os.getenv("DB_SSLMODE", "require")
 
 # Output paths
 OUTPUT_SAMPLES_PATH = "data/tbt/sampling/sampling_samples.parquet"
@@ -48,7 +49,8 @@ def fetch_route_data_from_db(sample_id: str) -> list:
             port=DB_PORT,
             database=DB_NAME,
             user=DB_USER,
-            password=DB_PASSWORD
+            password=DB_PASSWORD,
+            sslmode=DB_SSLMODE,
         )
         cursor = conn.cursor()
 
